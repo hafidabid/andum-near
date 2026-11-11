@@ -1,0 +1,4 @@
+# Contracts MUST be compiled with `--cfg near` (what `cargo near build` sets). A plain wasm build uses
+# near-sdk's pure-Rust fallbacks: panics lose their message (so ANDUM_ERR codes vanish) and hashing is not the host's.
+[target.wasm32-unknown-unknown]
+rustflags = ["--cfg", "near"]

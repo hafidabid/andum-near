@@ -1,4 +1,4 @@
-import { createPublicClient, createWalletClient, http, keccak256, parseAbi, toBytes, Hex, getAddress } from 'viem';
+import { createPublicClient, createWalletClient, defineChain, http, keccak256, parseAbi, toBytes, Hex, getAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia, sepolia } from 'viem/chains';
 import { Env } from '@andum/shared';
@@ -42,7 +42,9 @@ const GATEWAY_ABI = parseAbi([
 export class ViemEvmSource implements EvmSource {
   private clients = new Map<EvmChain, { pub: any; wallet: any; gateway: Hex }>();
   constructor(env: Env) {
-    const defs: [EvmChain, any, string, string][] = [['sepolia', sepolia, env.EVM_SEPOLIA_RPC, env.EVM_GATEWAY_SEPOLIA], ['baseSepolia', baseSepolia, env.EVM_BASE_SEPOLIA_RPC, env.EVM_GATEWAY_BASE_SEPOLIA]];
+    // EVM_*_CHAIN_ID lets a slot point at a local anvil (31337) for rehearsals without changing code
+    const withId = (c: any, id?: number) => (id ? defineChain({ ...c, id }) : c);
+    const defs: [EvmChain, any, string, string][] = [['sepolia', withId(sepolia, env.EVM_SEPOLIA_CHAIN_ID), env.EVM_SEPOLIA_RPC, env.EVM_GATEWAY_SEPOLIA], ['baseSepolia', withId(baseSepolia, env.EVM_BASE_SEPOLIA_CHAIN_ID), env.EVM_BASE_SEPOLIA_RPC, env.EVM_GATEWAY_BASE_SEPOLIA]];
     for (const [name, chain, rpc, gw] of defs) {
       if (!rpc || !gw) continue;
       const account = env.EVM_RELAYER_PK ? privateKeyToAccount(env.EVM_RELAYER_PK as Hex) : undefined;

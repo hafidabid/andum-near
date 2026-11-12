@@ -1,0 +1,16 @@
+{
+  "root": "hafidbuild.testnet",
+  "core": "core.hafidbuild.testnet",
+  "bridge": "bridge.hafidbuild.testnet",
+  "relayer": "relayer.hafidbuild.testnet",
+  "bridgeworker": "bridgeworker.hafidbuild.testnet",
+  "admin": "admin.hafidbuild.testnet",
+  "opsPublicKey": "ed25519:EfVqB9oSqtRRqDr6K1zfCxBvP2c8twJsaMx83VuNc7Rh",
+  "tokens": {
+    "usdc": "usdc.hafidbuild.testnet",
+    "idrx": "idrx.hafidbuild.testnet",
+    "myr": "myr.hafidbuild.testnet",
+    "xau": "xau.hafidbuild.testnet",
+    "aapl": "aapl.hafidbuild.testnet"
+  }
+}

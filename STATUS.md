@@ -2,7 +2,9 @@
 
 Last updated: 11 Nov 2026 (session 1). Legend: DONE = built and tested locally. PARTIAL = built, not validated against a live network. TODO = not started. HUMAN = needs a person (keys, funds, accounts).
 
-Nothing here has been deployed to NEAR testnet, Sepolia or Base Sepolia yet. Everything below was verified with unit tests, a local Postgres and Redis, an in-memory chain model, and (when it ran) the NEAR sandbox.
+**Deployed and exercised live (12 Nov 2026):** NEAR testnet under `hafidbuild.testnet` (core, bridge, 5 mock tokens: usdc idrx myr xau aapl) and EVM contracts on Sepolia (see `deployments/*.json`). The full user journey ran through the real API + worker + relayer against NEAR testnet (`scripts/live/live-e2e.mjs`, 16/16 checks), and the bridge ran NEAR testnet <-> local anvil and NEAR testnet <-> Sepolia (`scripts/live/live-bridge.mjs`, 9/9 each). Email is simulated with Mailpit (Docker). Base Sepolia is NOT deployed (the deployer has no Base Sepolia ETH).
+
+Everything else is verified with unit tests, local Postgres and Redis, an in-memory chain model and the NEAR sandbox.
 
 ## Test results (latest run)
 
@@ -18,6 +20,23 @@ Nothing here has been deployed to NEAR testnet, Sepolia or Base Sepolia yet. Eve
 | worker | `npm run test -w worker` | 63 passed |
 
 Test environment: Postgres on `localhost:5544` (db `andum_test`, user `andum`, trust auth) and Redis on `localhost:6390`. Override with `TEST_DATABASE_URL` and `TEST_REDIS_URL`.
+
+## Live testnet results
+
+| Check | Script | Result |
+|---|---|---|
+| Email login (SMTP to Mailpit), key bind, relayer top-up, faucet mint | `node scripts/live/live-e2e.mjs` | works on testnet |
+| Gasless `create_package`, `ft_transfer_call` (1 yocto), accept, claim, approve via NEP-366 delegate actions | same | **spike S-01 passed** (testnet accepted them) |
+| Contract error codes survive the optimised wasm (`INVITE_SECRET_INVALID`, `ALREADY_TAKEN`, `TIME_NOT_REACHED`, `APPROVAL_MISSING`, `NOT_PASS_OWNER`, `NOT_APPROVER`) | same | 16/16 |
+| Bridge EVM -> NEAR (deposit on the EVM chain, worker mints on NEAR testnet) and NEAR -> EVM (burn, worker releases on the EVM chain) | `node scripts/live/live-bridge.mjs` (anvil) and `NET=sepolia node scripts/live/live-bridge.mjs` (real Sepolia) | 9/9 on both |
+
+Findings from going live:
+- `NearRpcChain` (hand-rolled borsh + JSON-RPC) works against testnet as written: spike validated, no need for near-api-js.
+- The relayer policy caps `ft_transfer_call` at 80 Tgas and `max_block_height` at +200 blocks; the bridge-out and fund flows fit.
+- Contract wasm must be shrunk with `wasm-opt -Oz` (done by `scripts/deploy-near.sh`): 570 KB -> 268 KB halves the storage deposit.
+- Sepolia rejected contracts compiled with `evm_version = "cancun"` (constructor consumed all gas); `paris` deploys fine, so `foundry.toml` now uses `paris`. Cause not investigated.
+- Free Sepolia RPCs rate-limit `forge script`; `scripts/deploy-evm.sh` uses `forge create` + `cast send` with retries instead.
+- The bridge contract must be registered (NEP-145) with every bridgeable token; the deploy script does it now.
 
 ## Important finding
 
@@ -48,23 +67,23 @@ A plain `cargo build --target wasm32-unknown-unknown` produces a contract whose 
 | A-01 login and session | P0 | DONE (email) / PARTIAL (Privy) | `backend/src/auth.ts` | Email OTP over SMTP + client-held key (non-custodial) + encrypted backup, all tested (incl. a real SMTP server). Privy token verification implemented but NEAR signing via Privy is unverified (their docs do not list NEAR): spike S-02 [HUMAN]. Web3Auth not implemented |
 | A-02 account bootstrap | P0 | DONE | `accounts.ts` | |
 | A-03 invites, OTP, single use | P0 | DONE | `invites.ts` | |
-| A-04 relayer + policy engine | P0 | PARTIAL | `shared/policy.ts`, `worker/relay.service.ts` | real JSON-RPC client written but NOT run against testnet (spike S-01) |
+| A-04 relayer + policy engine | P0 | DONE | `shared/policy.ts`, `worker/relay.service.ts` | real JSON-RPC client validated on testnet |
 | A-05 package read API + reconcile | P0 | DONE | `packages.ts`, `worker/reconciler.ts` | |
 | A-06 notifier | P1 | DONE | `worker/notifier.ts` | SMTP/Mailpit; Resend via SMTP relay |
 | A-07 faucet API | P0 | DONE (NEAR) | `misc.ts` | EVM faucet endpoint returns 501 (TODO, P2) |
-| A-08 bridge worker | P2 | PARTIAL | `worker/bridge.ts`, `evm.ts` | state machine tested with fakes; viem client untested against a chain |
+| A-08 bridge worker | P2 | DONE | `worker/bridge.ts`, `evm.ts` | live NEAR testnet <-> anvil and <-> Sepolia rehearsals pass; `EVM_*_CHAIN_ID` env lets a slot point at anvil |
 | A-09 SSE | P1 | DONE | `misc.ts` | |
 | L-01 custom link | P1 | PARTIAL | `invites.ts` | `og.png` not implemented (HTML OG tags are) |
 | O-01 opening moment | P1 | n/a here | web app | contract stores theme + note |
 | U-01, U-02 web app | P0/P1 | OUT OF SCOPE this session | `andum-web/` exists (separate) | not wired to this backend |
-| N-01 gasless | P0 | PARTIAL | policy R6 allows only 1 yocto on `ft_transfer_call` | spike S-01 must confirm the user-pays-1-yocto behaviour on testnet |
+| N-01 gasless | P0 | DONE | policy R6 allows only 1 yocto on `ft_transfer_call` | confirmed on testnet (live-e2e) |
 | N-02 30-minute setup | P0 | PARTIAL | `README.md`, `.env.example`, `docker-compose.yml` | compose file not run (Docker daemon was not running) |
 
 ## Not done (next steps, in order)
 
-1. **[HUMAN] H-2 credentials**: create `ROOT` testnet account, fund it, run `scripts/deploy-near.sh` (written, syntax-checked, not run). Then spike S-01 (delegate action calling `ft_transfer_call` with 1 yocto) and spike S-03 (gas numbers).
-2. Run `scripts/deploy-evm.sh` for both Sepolia networks [HUMAN: funded deployer + relayer]. Fill `deployments/*.json` and the `EVM_GATEWAY_*` env vars. Enable `BRIDGE_ENABLED=true`.
-3. Validate `NearRpcChain` (hand-rolled borsh transaction encoding, `send_tx`) against testnet. If it misbehaves, swap the implementation for `near-api-js` behind the same `ChainClient` interface; nothing else changes.
+1. ~~NEAR testnet deploy and spike S-01~~ done (see Live testnet results). Remaining: spike S-03 gas tuning (current caps worked end to end, but no margins measured).
+2. Base Sepolia deploy [HUMAN: the deployer address has no Base Sepolia ETH]. Sepolia is deployed and the bridge rehearsal passes against it.
+3. ~~Validate `NearRpcChain` against testnet~~ done.
 4. Privy/Web3Auth provider (spike S-02) in `auth.ts`. Today only the `local` key-pair provider authenticates.
 5. `GET /p/{slug}/og.png` (image renderer) and OpenAPI 3.1 file (`packages/shared` in the plan; not written).
 6. EVM faucet endpoint and the EVM gasless signing path in the API.

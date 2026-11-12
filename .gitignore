@@ -6,3 +6,14 @@ smart-contract-near/target/
 smart-contract-evm/out/
 smart-contract-evm/cache/
 smart-contract-evm/broadcast/
+
+# secrets: never commit
+secret
+deployments/secrets/
+deployments/*.secret*
+deployments/*.keys.json
+deployments/.near-deploy-state
+deployments/*.state.json
+dump.rdb
+scripts/report/node_modules/
+docs/report

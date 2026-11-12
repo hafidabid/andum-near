@@ -41,6 +41,8 @@ export const envSchema = z.object({
   EVM_RELAYER_PK: z.string().default(''),
   EVM_SEPOLIA_RPC: z.string().default(''),
   EVM_BASE_SEPOLIA_RPC: z.string().default(''),
+  EVM_SEPOLIA_CHAIN_ID: z.coerce.number().optional(),
+  EVM_BASE_SEPOLIA_CHAIN_ID: z.coerce.number().optional(),
   EVM_GATEWAY_SEPOLIA: z.string().default(''),
   EVM_GATEWAY_BASE_SEPOLIA: z.string().default(''),
   BRIDGE_ENABLED: bool.default(false),

@@ -4,17 +4,19 @@ import { NEAR_CORE, TGAS, tokenAccount } from '@/lib/chain'
 import { buildDraft, emptyDraft, emptyPart, MAX_NOTE, MAX_PARTS, totalsByAsset, type Draft, type PartDraft, type Problems } from '@/lib/draft'
 import { errorText } from '@/lib/errors'
 import { THEMES, type ThemeId } from '@/lib/themes'
-import { Card, Field, Notice, StepList, TxLink, inputCls, type StepState } from './ui'
+import type { ReactNode } from 'react'
+import { Field, Notice, StepList, TxLink, inputCls, type StepState } from './ui'
 import { useSession } from './Session'
 import { assetFromKey, fromBase } from '@/lib/money'
-import { AssetIcon } from '@/lib/assets'
-import { ThemeArt } from '@/components/ThemeArt'
+import { AS, AssetIcon } from '@/lib/assets'
 
-const SEND_TEMPLATES = [
-  { id: 'gift', icon: '✳', name: 'A gift', detail: 'One part now, one on a date', parts: [{ asset: 'myr', amount: '500', dated: false }, { asset: 'myr', amount: '4500', dated: true }] },
-  { id: 'milestone', icon: '▤', name: 'Milestones', detail: 'Release each stage after approval', parts: [{ asset: 'usdc', amount: '500', dated: false }, { asset: 'usdc', amount: '1000', dated: true, approvalRequired: true }] },
-  { id: 'vesting', icon: '◷', name: 'Vesting', detail: 'Cash and shares on set dates', parts: [{ asset: 'idrx', amount: '12000000', dated: true }, { asset: 'aapl', amount: '10', dated: true }] },
-] as const
+/** Starting points set only HOW each part opens. They never choose an asset or an amount. */
+const STARTS: Array<{ id: string; name: string; rules: Array<{ dated: boolean; approvalRequired?: boolean }> }> = [
+  { id: 'single', name: 'One part', rules: [{ dated: false }] },
+  { id: 'now-later', name: 'Now and later', rules: [{ dated: false }, { dated: true }] },
+  { id: 'milestones', name: 'Milestones', rules: [{ dated: false }, { dated: true, approvalRequired: true }] },
+  { id: 'vesting', name: 'Vesting', rules: [{ dated: true }, { dated: true }] },
+]
 
 const DRAFT_KEY = 'andum.package-draft.v1'
 
@@ -36,7 +38,7 @@ interface Run {
 
 const STEPS = ['Reserve the invite', 'Create the package on NEAR', 'Fund every part', 'Email the recipient', 'Set the link'] as const
 
-export function Send({ balances, onDone }: { balances: Record<string, string>; onDone: () => void }) {
+export function Send({ balances, onDone, rail }: { balances: Record<string, string>; onDone: () => void; rail?: ReactNode }) {
   const s = useSession()
   const [d, setD] = useState<Draft>(emptyDraft)
   const [problems, setProblems] = useState<Problems | null>(null)
@@ -116,16 +118,19 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
 
   function reset() { setD(emptyDraft()); setTemplate(null); setStep(-1); setFailed(null); setErr(null); setLink(null); setDetail({}); run.current = { funded: new Set() } }
 
-  function applyTemplate(id: string) {
-    const preset = SEND_TEMPLATES.find((x) => x.id === id)
-    if (!preset) return
+  /** Set how each part opens and keep whatever asset and amount the sender already chose. */
+  function applyStart(id: string) {
+    const start = STARTS.find((x) => x.id === id)
+    if (!start) return
     setTemplate(id)
-    setD((current) => ({ ...current, parts: preset.parts.map((p) => ({ ...emptyPart(p.asset), ...p, threshold: '1' })) }))
-  }
-
-  function startBlank() {
-    setTemplate('blank')
-    setD((current) => ({ ...current, parts: [emptyPart()] }))
+    setProblems(null)
+    setD((cur) => ({
+      ...cur,
+      parts: start.rules.map((r, i) => {
+        const was = cur.parts[i] ?? emptyPart(cur.parts[0]?.asset)
+        return { ...was, dated: r.dated, date: r.dated ? was.date : '', approvalRequired: !!r.approvalRequired, approvers: r.approvalRequired ? was.approvers : '', threshold: '1' }
+      }),
+    }))
   }
 
   function saveDraft() {
@@ -152,132 +157,155 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
   if (step >= 0) {
     const states: StepState[] = STEPS.map((_, i) => (failed === i ? 'fail' : i < step || step === STEPS.length ? 'done' : i === step && failed === null ? 'doing' : 'todo'))
     return (
-      <Card className="grid gap-5" >
-        <div className="grid gap-1 border-b border-line pb-4">
-          <span className="mono text-[11px]">Dispatch status</span>
-          <h2 className="font-display text-[24px]">{link ? 'Package sent' : 'Sending your package'}</h2>
-        </div>
-        <StepList steps={STEPS.map((label, i) => ({ label, state: states[i], extra: detail[i] && states[i] === 'doing' ? <span className="text-[13px] text-muted">{detail[i]}</span> : i === 1 && run.current.createTx && states[i] === 'done' ? <TxLink hash={run.current.createTx} /> : null }))} />
-        {err && <Notice>{err}</Notice>}
-        {failed !== null && (
-          <div className="flex gap-3">
-            <button className="btn" onClick={() => void execute()}>Try again</button>
-            <button className="btn ghost" onClick={reset}>Start over</button>
-          </div>
-        )}
-        {link && (
-          <div className="grid gap-3" data-done="true">
-            <Notice kind="ok">Package #{run.current.pkgId} is funded. The recipient has been emailed.</Notice>
-            <Field label="Recipient link"><input className={inputCls + ' font-mono text-[14px] normal-case tracking-normal'} readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Package link" /></Field>
-            <p className="text-[13px] text-muted">Keep this link if you need to send it again. The recipient opens it from their email.</p>
-            <div className="flex flex-wrap gap-3">
-              <button className="btn" onClick={() => void navigator.clipboard?.writeText(link)}>Copy link</button>
-              <button className="btn ghost" onClick={reset}>Send another</button>
+      <div className="ws-grid">
+        <section className="ws-card grid gap-5" aria-label="Sending status">
+          <h2 className="ws-h" style={{ margin: 0 }}>{link ? 'Package sent' : 'Sending your package'}</h2>
+          <StepList steps={STEPS.map((label, i) => ({ label, state: states[i], extra: detail[i] && states[i] === 'doing' ? <span className="text-[13px] text-muted">{detail[i]}</span> : i === 1 && run.current.createTx && states[i] === 'done' ? <TxLink hash={run.current.createTx} /> : null }))} />
+          {err && <Notice>{err}</Notice>}
+          {failed !== null && (
+            <div className="flex gap-3">
+              <button className="btn" onClick={() => void execute()}>Try again</button>
+              <button className="btn ghost" onClick={reset}>Start over</button>
             </div>
-          </div>
-        )}
-        {busy && <p className="text-[13px] text-faint">Signing in your browser. Andum pays the network fee. Keep this tab open.</p>}
-      </Card>
+          )}
+          {link && (
+            <div className="grid gap-3" data-done="true">
+              <Notice kind="ok">Package #{run.current.pkgId} is funded. The recipient has been emailed.</Notice>
+              <Field label="Recipient link"><input className={inputCls + ' ws-in text-[14px] normal-case tracking-normal'} readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Package link" /></Field>
+              <p className="text-[13px] text-muted">Keep this link if you need to send it again. The recipient opens it from their email.</p>
+              <div className="flex flex-wrap gap-3">
+                <button className="btn" onClick={() => void navigator.clipboard?.writeText(link)}>Copy link</button>
+                <button className="btn ghost" onClick={reset}>Send another</button>
+              </div>
+            </div>
+          )}
+          {busy && <p className="text-[13px] text-faint">Signing in your browser. Andum pays the network fee. Keep this tab open.</p>}
+        </section>
+        <div className="ws-rail">{rail}</div>
+      </div>
     )
   }
 
   const pe = (i: number, k: string) => problems?.parts[i]?.[k]
-  const recipientReady = d.email.trim().length > 0
-  const contentsReady = d.parts.some((p) => p.amount.trim().length > 0)
+  const startNote = STARTS.find((x) => x.id === template)
   return (
-    <form onSubmit={submit} className="grid gap-5" noValidate aria-label="New package">
-      <section className="dispatch-templates" aria-label="Package templates">
-        <div className="flex items-end justify-between gap-3"><div><span className="mono text-[11px]">Choose a starting point</span><h2 className="mt-1 font-display text-[20px]">Build your package</h2></div><span className="text-[12px] text-muted">Patterns are optional</span></div>
-        <div className="template-grid">
-          <button type="button" aria-pressed={template === 'blank'} className="template-choice template-choice--blank" onClick={startBlank}>
-            <span className="template-mark template-mark--blank" aria-hidden="true">+</span><span className="min-w-0"><b>Start blank</b><small>Choose every detail yourself</small></span><span className="template-count">1 empty part</span>
-          </button>
-          {SEND_TEMPLATES.map((item) => <button type="button" key={item.id} aria-pressed={template === item.id} className="template-choice" onClick={() => applyTemplate(item.id)}>
-            <span className="template-mark" aria-hidden="true">{item.icon}</span><span className="min-w-0"><b>{item.name}</b><small>{item.detail}</small></span><span className="template-count">{item.parts.length} parts</span>
-          </button>)}
-        </div>
-        {template && <div className="template-preview" aria-live="polite">
-          <div className="template-preview-art"><ThemeArt theme={d.theme} className="h-10 w-10" /></div>
-          <div className="min-w-0 flex-1"><b>{template === 'blank' ? 'Blank package' : SEND_TEMPLATES.find((x) => x.id === template)?.name} preview</b><div className="template-preview-parts">{d.parts.map((p, i) => <span key={i}><AssetIcon a={assetFromKey(p.asset)} size={18} /> {p.amount || 'Amount'} {p.asset.toUpperCase()} · {p.dated ? 'Date' : 'On acceptance'}{p.approvalRequired ? ' + approval' : ''}</span>)}</div></div>
-          <button type="button" className="text-[13px] text-muted underline-offset-2 hover:underline" onClick={() => setTemplate(null)}>Clear</button>
-        </div>}
-      </section>
-      <PackageRoute templateChosen={template !== null} recipientReady={recipientReady} contentsReady={contentsReady} />
-      <Card className="grid gap-5">
-        <div className="border-b border-line pb-4"><span className="mono text-[11px]">01 · Recipient</span><h2 className="mt-1 font-display text-[22px]">Who is it for?</h2></div>
-        <Field label="Recipient email" error={problems?.form.email}><input className={inputCls} type="email" value={d.email} onChange={(e) => setD({ ...d, email: e.target.value })} aria-label="Recipient email" /></Field>
-        <div className="grid items-start gap-4 sm:grid-cols-2">
-          <Field label="Title (optional)" error={problems?.form.title}><input className={inputCls} placeholder="Your audit bonus" value={d.title} onChange={(e) => setD({ ...d, title: e.target.value })} aria-label="Title" /></Field>
-          <Field label="Link name (optional)" error={problems?.form.slug} hint="andum link: /p/your-name"><input className={inputCls} placeholder="rina-audit-bonus" value={d.slug} onChange={(e) => setD({ ...d, slug: e.target.value.toLowerCase() })} aria-label="Link name" /></Field>
-        </div>
-        <Field label="Note (shown after they accept)" error={problems?.form.note} hint={`${d.note.length}/${MAX_NOTE}`}><textarea className={inputCls} rows={2} value={d.note} onChange={(e) => setD({ ...d, note: e.target.value })} aria-label="Note" /></Field>
-        <div className="grid items-start gap-4 sm:grid-cols-2">
-          <Field label="Opening moment"><select className={inputCls} value={d.theme} onChange={(e) => setD({ ...d, theme: e.target.value as ThemeId })} aria-label="Theme">{THEMES.map((t) => <option key={t.id} value={t.id}>{t.n}</option>)}</select></Field>
-          <Field label="Recipient must accept within (hours)" error={problems?.form.acceptHours}><input className={inputCls} inputMode="numeric" value={d.acceptHours} onChange={(e) => setD({ ...d, acceptHours: e.target.value })} aria-label="Accept within hours" /></Field>
-        </div>
-      </Card>
+    <form onSubmit={submit} className="ws-grid" noValidate aria-label="New package">
+      <div className="ws-card">
+        <section className="ws-section" aria-label="Recipient">
+          <h2 className="ws-h">Who is it for?</h2>
+          <div className="ws-fields">
+            <Field label="Recipient email" error={problems?.form.email}><input className={inputCls + ' ws-in'} type="email" autoComplete="off" placeholder="Their email address" value={d.email} onChange={(e) => setD({ ...d, email: e.target.value })} aria-label="Recipient email" /></Field>
+          </div>
+        </section>
 
-      <Card className="grid gap-5">
-        <div className="flex items-end justify-between border-b border-line pb-4"><div><span className="mono text-[11px]">02 · Contents</span><h2 className="mt-1 font-display text-[22px]">Parts</h2></div><span className="text-[13px] text-muted">{d.parts.length} of {MAX_PARTS}</span></div>
-        {d.parts.map((p, i) => (
-          <fieldset key={i} className="part-form grid gap-4 rounded-xl border border-line p-4" aria-label={`Part ${i + 1}`}>
-            <legend className="mono px-1 text-[11px]">Part {i + 1}</legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Asset"><div className="asel"><AssetIcon a={assetFromKey(p.asset)} size={22} /><select className={inputCls + ' appearance-none pl-11'} value={p.asset} onChange={(e) => setPart(i, { asset: e.target.value })} aria-label={`Part ${i + 1} asset`}>{ASSET_GROUPS.map(([g, opts]) => <optgroup key={g} label={g}>{opts.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</optgroup>)}</select></div></Field>
-              <Field label="Amount" error={pe(i, 'amount')}><input className={inputCls} inputMode="decimal" placeholder="200" value={p.amount} onChange={(e) => setPart(i, { amount: e.target.value })} aria-label={`Part ${i + 1} amount`} /></Field>
+        <section className="ws-section" aria-label="Parts">
+          <h2 className="ws-h">What opens, and when? <small>{d.parts.length} of {MAX_PARTS} parts</small></h2>
+          <div className="ws-starts" role="group" aria-label="Starting points">
+            <span>Start from</span>
+            {STARTS.map((x) => <button type="button" key={x.id} className="ws-chip" aria-pressed={template === x.id} onClick={() => applyStart(x.id)}>{x.name}</button>)}
+            {startNote && <span aria-live="polite">Sets how parts open. Assets and amounts stay yours.</span>}
+          </div>
+          {d.parts.map((p, i) => (
+            <fieldset key={i} className="ws-part" aria-label={`Part ${i + 1}`}>
+              <div className="ws-part-head"><span>Part {i + 1}</span>{d.parts.length > 1 && <button type="button" className="ws-link" onClick={() => { setTemplate(null); setD({ ...d, parts: d.parts.filter((_, j) => j !== i) }) }}>Remove</button>}</div>
+              <div className="ws-two">
+                <Field label="Asset"><div className="asel"><AssetIcon a={assetFromKey(p.asset)} size={22} /><select className={inputCls + ' ws-in appearance-none pl-11'} value={p.asset} onChange={(e) => setPart(i, { asset: e.target.value })} aria-label={`Part ${i + 1} asset`}>{ASSET_GROUPS.map(([g, opts]) => <optgroup key={g} label={g}>{opts.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</optgroup>)}</select></div></Field>
+                <Field label="Amount" error={pe(i, 'amount')}><input className={inputCls + ' ws-in'} inputMode="decimal" placeholder="0" value={p.amount} onChange={(e) => setPart(i, { amount: e.target.value })} aria-label={`Part ${i + 1} amount`} /></Field>
+              </div>
+              <label className="ws-check"><input type="checkbox" checked={p.dated} onChange={(e) => { setTemplate(null); setPart(i, { dated: e.target.checked, approvalRequired: e.target.checked ? p.approvalRequired : false, approvers: e.target.checked ? p.approvers : '' }) }} aria-label={`Part ${i + 1} opens on a date`} /><span><b>Release on a date</b><small>Otherwise it opens as soon as they accept.</small></span></label>
+              {p.dated && (
+                <>
+                  <Field label="Opens at" error={pe(i, 'date')}><input className={inputCls + ' ws-in'} type="datetime-local" value={p.date} onChange={(e) => setPart(i, { date: e.target.value })} aria-label={`Part ${i + 1} date`} /></Field>
+                  <label className="ws-check"><input type="checkbox" checked={p.approvalRequired} onChange={(e) => { setTemplate(null); setPart(i, { approvalRequired: e.target.checked, approvers: e.target.checked ? p.approvers : '' }) }} aria-label={`Part ${i + 1} requires approval`} /><span><b>Require approval before release</b><small>Approvers confirm after the date arrives.</small></span></label>
+                  {p.approvalRequired && <div className="ws-two">
+                    <Field label="Approvers" error={pe(i, 'approvers')} hint="NEAR accounts, separated by commas"><input className={inputCls + ' ws-in'} placeholder="account1, account2" value={p.approvers} onChange={(e) => setPart(i, { approvers: e.target.value })} aria-label={`Part ${i + 1} approvers`} /></Field>
+                    <Field label="Approvals needed" error={pe(i, 'threshold')}><input className={inputCls + ' ws-in'} inputMode="numeric" value={p.threshold} onChange={(e) => setPart(i, { threshold: e.target.value })} aria-label={`Part ${i + 1} approvals needed`} /></Field>
+                  </div>}
+                </>
+              )}
+              {pe(i, 'approvers') && !p.dated && <Notice>{pe(i, 'approvers')}</Notice>}
+            </fieldset>
+          ))}
+          {problems?.form.parts && <div className="mt-3"><Notice>{problems.form.parts}</Notice></div>}
+          <button type="button" className="ws-add" disabled={d.parts.length >= MAX_PARTS} onClick={() => { setTemplate(null); setD({ ...d, parts: [...d.parts, emptyPart(d.parts[d.parts.length - 1]?.asset)] }) }}>+ Add a part</button>
+        </section>
+
+        <section className="ws-section" aria-label="Make it theirs">
+          <h2 className="ws-h">Make it theirs <small>Optional</small></h2>
+          <div className="ws-fields">
+            <div className="ws-two">
+              <Field label="Title (optional)" error={problems?.form.title}><input className={inputCls + ' ws-in'} placeholder="Your audit bonus" value={d.title} onChange={(e) => setD({ ...d, title: e.target.value })} aria-label="Title" /></Field>
+              <Field label="Link name (optional)" error={problems?.form.slug} hint="andum link: /p/your-name"><input className={inputCls + ' ws-in'} placeholder="rina-audit-bonus" value={d.slug} onChange={(e) => setD({ ...d, slug: e.target.value.toLowerCase() })} aria-label="Link name" /></Field>
             </div>
-            <label className="dispatch-check"><input type="checkbox" checked={p.dated} onChange={(e) => setPart(i, { dated: e.target.checked, approvalRequired: e.target.checked ? p.approvalRequired : false, approvers: e.target.checked ? p.approvers : '' })} aria-label={`Part ${i + 1} opens on a date`} /><span><b>Release on a date</b><small>Otherwise it is available as soon as they accept.</small></span></label>
-            {p.dated && (
-              <>
-                <Field label="Opens at" error={pe(i, 'date')}><input className={inputCls} type="datetime-local" value={p.date} onChange={(e) => setPart(i, { date: e.target.value })} aria-label={`Part ${i + 1} date`} /></Field>
-                <label className="dispatch-check"><input type="checkbox" checked={p.approvalRequired} onChange={(e) => setPart(i, { approvalRequired: e.target.checked, approvers: e.target.checked ? p.approvers : '' })} aria-label={`Part ${i + 1} requires approval`} /><span><b>Require approval before release</b><small>Approvers confirm after the date arrives.</small></span></label>
-                {p.approvalRequired && <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_140px]">
-                  <Field label="Approvers" error={pe(i, 'approvers')} hint="NEAR accounts, separated by commas"><input className={inputCls} placeholder="account1, account2" value={p.approvers} onChange={(e) => setPart(i, { approvers: e.target.value })} aria-label={`Part ${i + 1} approvers`} /></Field>
-                  <Field label="Approvals needed" error={pe(i, 'threshold')}><input className={inputCls} inputMode="numeric" value={p.threshold} onChange={(e) => setPart(i, { threshold: e.target.value })} aria-label={`Part ${i + 1} approvals needed`} /></Field>
-                </div>}
-              </>
-            )}
-            {pe(i, 'approvers') && !p.dated && <Notice>{pe(i, 'approvers')}</Notice>}
-            {d.parts.length > 1 && <button type="button" className="justify-self-end text-[13px] text-muted underline-offset-2 hover:underline" onClick={() => setD({ ...d, parts: d.parts.filter((_, j) => j !== i) })}>Remove part</button>}
-          </fieldset>
-        ))}
-        {problems?.form.parts && <Notice>{problems.form.parts}</Notice>}
-        <button type="button" className="btn ghost justify-self-start" disabled={d.parts.length >= MAX_PARTS} onClick={() => setD({ ...d, parts: [...d.parts, emptyPart()] })}>+ Add a part</button>
-      </Card>
+            <Field label="Note (shown after they accept)" error={problems?.form.note} hint={`${d.note.length}/${MAX_NOTE}`}><textarea className={inputCls + ' ws-in'} rows={2} value={d.note} onChange={(e) => setD({ ...d, note: e.target.value })} aria-label="Note" /></Field>
+            <div className="ws-two">
+              <Field label="Opening moment"><select className={inputCls + ' ws-in'} value={d.theme} onChange={(e) => setD({ ...d, theme: e.target.value as ThemeId })} aria-label="Theme">{THEMES.map((t) => <option key={t.id} value={t.id}>{t.n}</option>)}</select></Field>
+              <Field label="They must accept within (hours)" error={problems?.form.acceptHours}><input className={inputCls + ' ws-in'} inputMode="numeric" value={d.acceptHours} onChange={(e) => setD({ ...d, acceptHours: e.target.value })} aria-label="Accept within hours" /></Field>
+            </div>
+          </div>
+        </section>
+      </div>
 
-      {problems?.form.balance && <Notice>{problems.form.balance}</Notice>}
-      <div className="dispatch-submit">
-        <div className="dispatch-draft-actions">
-          <button type="button" className="btn ghost" onClick={saveDraft}>Save draft</button>
-          <button type="button" className="text-[13px] text-muted underline-offset-2 hover:underline" onClick={restoreDraft}>Restore draft</button>
-          {draftStatus && <span className="text-[12px] text-muted" role="status">{draftStatus}</span>}
-        </div>
-        <button className="btn justify-center">Create and send <span className="arr">→</span></button>
+      <div className="ws-rail">
+        <Summary d={d} balances={balances} balanceError={problems?.form.balance}>
+          <button className="ws-send">Create and send <span aria-hidden="true">→</span></button>
+          <div className="ws-draft">
+            <button type="button" className="ws-link" onClick={saveDraft}>Save draft</button>
+            <button type="button" className="ws-link" onClick={restoreDraft}>Restore draft</button>
+            {draftStatus && <span role="status">{draftStatus}</span>}
+          </div>
+        </Summary>
+        {rail}
       </div>
     </form>
   )
 }
 
-function PackageRoute({ templateChosen, recipientReady, contentsReady }: { templateChosen: boolean; recipientReady: boolean; contentsReady: boolean }) {
-  const active = contentsReady ? 3 : recipientReady ? 2 : templateChosen ? 1 : 0
-  const stops = [
-    { label: 'Start', note: 'Pick a pattern or begin blank', art: <PackageGlyph /> },
-    { label: 'Recipient', note: 'Who will receive it?', art: <RecipientGlyph /> },
-    { label: 'Contents', note: 'Add the parts that travel', art: <ParcelGlyph /> },
-  ]
-  return <nav className="package-route" aria-label="Package progress">
-    <div className="package-route__track" aria-hidden="true"><span style={{ transform: `scaleX(${active / 3})` }} /></div>
-    {stops.map((stop, i) => {
-      const state = i < active ? 'done' : i === active ? 'active' : 'next'
-      return <div className="package-route__stop" data-state={state} key={stop.label}>
-        <span className="package-route__art" aria-hidden="true">{state === 'done' ? '✓' : stop.art}</span>
-        <span><b>{stop.label}</b><small>{stop.note}</small></span>
-      </div>
-    })}
-  </nav>
+const SYMBOL = (key: string) => AS[assetFromKey(key)].u
+
+function whenText(p: PartDraft): string {
+  if (!p.dated) return 'When they accept'
+  const t = Date.parse(p.date)
+  const day = Number.isFinite(t) ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'a date (not set yet)'
+  return `On ${day}${p.approvalRequired ? ' · after approval' : ''}`
 }
 
-function PackageGlyph() { return <svg viewBox="0 0 24 24" fill="none"><path d="M4 8.5 12 4l8 4.5v8L12 21l-8-4.5v-8Z"/><path d="m4 8.5 8 4.5 8-4.5M12 13v8M8.5 6l8 4.5"/></svg> }
-function RecipientGlyph() { return <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3"/><path d="M5.5 20c.7-3.4 2.9-5 6.5-5s5.8 1.6 6.5 5"/></svg> }
-function ParcelGlyph() { return <svg viewBox="0 0 24 24" fill="none"><path d="M4 9h16v10H4zM8 9V6h8v3M4 13h16"/><path d="M12 13v6"/></svg> }
-
+/** The package as it is being built, and what is still missing. Reads the same validation the contract call uses. */
+export function Summary({ d, balances, balanceError, children }: { d: Draft; balances: Record<string, string>; balanceError?: string; children?: ReactNode }) {
+  const r = buildDraft(d, Date.now())
+  const filled = d.parts.filter((p) => Number(p.amount) > 0).length
+  const datedNoDate = d.parts.some((p) => p.dated && !Number.isFinite(Date.parse(p.date)))
+  const needsApprovers = d.parts.some((p) => p.approvalRequired && p.approvers.trim().length === 0)
+  const hasEmail = /\S+@\S+\.\S+/.test(d.email.trim())
+  const need = r.ok ? totalsByAsset(r.built.args.parts) : null
+  const short = need ? Object.entries(need).find(([a, n]) => BigInt(balances[a] ?? '0') < n) : undefined
+  const todo: Array<{ text: string; done: boolean; bad?: boolean }> = [
+    { text: hasEmail ? 'Recipient set' : 'Add the recipient’s email', done: hasEmail },
+    { text: filled === d.parts.length ? `${filled === 1 ? 'Amount' : 'Amounts'} set` : 'Enter an amount for every part', done: filled === d.parts.length },
+    ...(d.parts.some((p) => p.dated) ? [{ text: datedNoDate ? 'Pick a date for every dated part' : 'Release dates set', done: !datedNoDate }] : []),
+    ...(d.parts.some((p) => p.approvalRequired) ? [{ text: needsApprovers ? 'Add approvers where approval is required' : 'Approvers set', done: !needsApprovers }] : []),
+    ...(short ? [{ text: `You need ${fromBase(short[1].toString())} ${SYMBOL(short[0])} and have ${fromBase(balances[short[0]] ?? '0')}. Use “+ Get” below.`, done: false, bad: true }] : need ? [{ text: 'Your balance covers it', done: true }] : []),
+  ]
+  const left = todo.filter((t) => !t.done).length
+  const title = d.title.trim() || (hasEmail ? d.email.trim() : 'New package')
+  return (
+    <section className="ws-card ws-card--tight" aria-label="Package summary">
+      <h2 className="ws-sum-title">{title}</h2>
+      <p className="ws-sum-sub" role="status">{left === 0 ? 'Ready to send' : `${left} ${left === 1 ? 'thing' : 'things'} left before you can send`}</p>
+      <ul className="ws-sum-parts" aria-label="Parts in this package">
+        {d.parts.map((p, i) => (
+          <li key={i} className="ws-sum-part">
+            <AssetIcon a={assetFromKey(p.asset)} size={20} />
+            <span className={`ws-sum-amt num${p.amount ? '' : ' is-empty'}`}>{p.amount || 'Amount'} {SYMBOL(p.asset)}</span>
+            {!p.dated ? <span className="ws-sum-now">Opens at once</span> : <span />}
+            <span className="ws-sum-rule">{whenText(p)}</span>
+          </li>
+        ))}
+      </ul>
+      {need && <div className="ws-total"><span>Total</span><b className="num">{Object.entries(need).map(([a, n]) => `${fromBase(n.toString())} ${SYMBOL(a)}`).join(' + ')}</b></div>}
+      <ul className="ws-todo" aria-label="What is left">{todo.map((t) => <li key={t.text} data-done={t.done} data-bad={t.bad || undefined}>{t.text}</li>)}</ul>
+      {balanceError && <div className="mb-3"><Notice>{balanceError}</Notice></div>}
+      {children}
+    </section>
+  )
+}

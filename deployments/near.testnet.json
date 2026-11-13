@@ -11,6 +11,8 @@
     "idrx": "idrx.hafidbuild.testnet",
     "myr": "myr.hafidbuild.testnet",
     "xau": "xau.hafidbuild.testnet",
-    "aapl": "aapl.hafidbuild.testnet"
+    "aapl": "aapl.hafidbuild.testnet",
+    "nvda": "nvda.hafidbuild.testnet",
+    "pltr": "pltr.hafidbuild.testnet"
   }
 }

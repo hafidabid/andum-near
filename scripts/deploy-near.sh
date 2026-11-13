@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="${ROOT:-hafidbuild.testnet}"
-ASSETS=(${ASSETS:-usdc idrx myr xau aapl})
+ASSETS=(${ASSETS:-usdc idrx myr xau aapl nvda pltr})
 BRIDGEABLE=(${BRIDGEABLE:-usdc idrx myr})
 export PATH="$HOME/.cargo-andum/bin:$PATH"; export RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup-andum}" CARGO_HOME="${CARGO_HOME:-$HOME/.cargo-andum}"
 node scripts/keys.mjs gen >/dev/null
@@ -59,6 +59,10 @@ for a in "${BRIDGEABLE[@]}"; do
   rb() { near contract call-function as-transaction "$(acct "$a")" storage_deposit json-args "{\"account_id\":\"$(acct bridge)\",\"registration_only\":true}" prepaid-gas '30 Tgas' attached-deposit '0.01 NEAR' sign-as "$ROOT" network-config testnet "${root_sign[@]}" >/dev/null; }
   KEY="regb-$a"; once "regb-$a" rb
 done
+
+# keep the core allow-list equal to ASSETS. `new` only sets it once, so later additions need set_allowed_tokens (admin, the ops key). Re-runs only when ASSETS changes.
+sync_allow() { near contract call-function as-transaction "$(acct core)" set_allowed_tokens json-args "{\"tokens\":[$(list "${ASSETS[@]}")]}" prepaid-gas '30 Tgas' attached-deposit '0 NEAR' sign-as "$(acct admin)" network-config testnet "${ops_sign[@]}" >/dev/null; }
+KEY="allow-${ASSETS[*]// /-}"; once "$KEY" sync_allow
 
 # contract keeps a NEAR buffer for storage of packages (plan 2.4, reduced for a testnet budget)
 fund() { near tokens "$ROOT" send-near "$(acct "$1")" "$2 NEAR" network-config testnet "${root_sign[@]}" >/dev/null; }

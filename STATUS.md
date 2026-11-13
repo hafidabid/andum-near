@@ -1,6 +1,6 @@
 # Andum build status
 
-Last updated: 11 Nov 2026 (session 1). Legend: DONE = built and tested locally. PARTIAL = built, not validated against a live network. TODO = not started. HUMAN = needs a person (keys, funds, accounts).
+Last updated: 13 Nov 2026 (session 2: web app integration). Legend: DONE = built and tested locally. PARTIAL = built, not validated against a live network. TODO = not started. HUMAN = needs a person (keys, funds, accounts).
 
 **Deployed and exercised live (12 Nov 2026):** NEAR testnet under `hafidbuild.testnet` (core, bridge, 5 mock tokens: usdc idrx myr xau aapl) and EVM contracts on Sepolia (see `deployments/*.json`). The full user journey ran through the real API + worker + relayer against NEAR testnet (`scripts/live/live-e2e.mjs`, 16/16 checks), and the bridge ran NEAR testnet <-> local anvil and NEAR testnet <-> Sepolia (`scripts/live/live-bridge.mjs`, 9/9 each). Email is simulated with Mailpit (Docker). Base Sepolia is NOT deployed (the deployer has no Base Sepolia ETH).
 
@@ -20,6 +20,16 @@ Everything else is verified with unit tests, local Postgres and Redis, an in-mem
 | worker | `npm run test -w worker` | 63 passed |
 
 Test environment: Postgres on `localhost:5544` (db `andum_test`, user `andum`, trust auth) and Redis on `localhost:6390`. Override with `TEST_DATABASE_URL` and `TEST_REDIS_URL`.
+
+## Web app results (13 Nov 2026)
+
+| Check | Command | Result |
+|---|---|---|
+| Web unit and integration | `cd andum-web && npm test` | 238 passed |
+| Browser, API only | `npm run test:e2e:guards` | 9 passed |
+| Browser, full journey on NEAR testnet (3 browsers) | `npm run test:e2e` | passed in 4.8 minutes |
+
+Bugs the live run found that the mocks could not: the browser sent `create_package` arguments without the contract's `args` wrapper (the relayer policy refused it; now covered by a test that decodes the signed call and runs the relayer policy); the browser test read a code from the wrong email. Both fixed.
 
 ## Live testnet results
 
@@ -75,7 +85,7 @@ A plain `cargo build --target wasm32-unknown-unknown` produces a contract whose 
 | A-09 SSE | P1 | DONE | `misc.ts` | |
 | L-01 custom link | P1 | PARTIAL | `invites.ts` | `og.png` not implemented (HTML OG tags are) |
 | O-01 opening moment | P1 | n/a here | web app | contract stores theme + note |
-| U-01, U-02 web app | P0/P1 | OUT OF SCOPE this session | `andum-web/` exists (separate) | not wired to this backend |
+| U-01, U-02 web app | P0/P1 | DONE (NEAR) | `andum-web/` | wired to the API; sender, recipient and approver flows run in a browser on NEAR testnet (journey test passes). Gaps: no key recovery screen, bridge and settings screens, EVM |
 | N-01 gasless | P0 | DONE | policy R6 allows only 1 yocto on `ft_transfer_call` | confirmed on testnet (live-e2e) |
 | N-02 30-minute setup | P0 | PARTIAL | `README.md`, `.env.example`, `docker-compose.yml` | compose file not run (Docker daemon was not running) |
 
@@ -88,7 +98,7 @@ A plain `cargo build --target wasm32-unknown-unknown` produces a contract whose 
 5. `GET /p/{slug}/og.png` (image renderer) and OpenAPI 3.1 file (`packages/shared` in the plan; not written).
 6. EVM faucet endpoint and the EVM gasless signing path in the API.
 7. Gas tuning (plan 5.9 numbers are estimates), `near-workspaces` tests for approver groups 2-of-3, `ft_mint_call` + `bridge_in` with fund, and the bridge on the sandbox.
-8. Web app integration (WS-E), Playwright E2E (WS-F), UAT scripts.
+8. ~~Web app integration (WS-E), Playwright E2E (WS-F)~~ done (13 Nov): 238 web tests and 10 browser tests. Remaining: key backup/recovery UI, bridge and notification screens, UAT scripts.
 9. `docs/DECISIONS.md`, `docs/VERIFY-LOG.md`, `docs/RUNBOOK.md` (only `docs/interface-changes.md` exists).
 
 ## Deviations from the plan (all logged in `docs/interface-changes.md`)

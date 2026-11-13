@@ -450,3 +450,19 @@ Cut lines: if the schedule slips, drop the vertical cut, the thread, and then th
 - [ ] Post link saved in the README and in the submission form
 - [ ] Demo stays online until judging ends
 - [ ] Respond to comments for the first 2 hours
+
+
+---
+
+## 12. Update, 13 Nov 2026: the demo now runs in the real web app
+
+The beats in section 3 can now be recorded **in the browser, not in a terminal**. `docs/media/app-demo.mp4` (about 1:54) and `app-demo.gif` were cut from the recordings of the Playwright journey test (`andum-web/e2e/journey.spec.ts`) with `scripts/demo/make-ui-demo.mjs`:
+
+| Beat in section 3 | In the recording |
+|---|---|
+| 3 Sender builds, names the link and sends | Segment 1: sign in, faucet, two parts (one dated with an approver), send. No gas |
+| 4 Receiver sees before accepting | Segment 2: the link page shows 1,000 USDC locked in two parts; a wrong invite code is refused |
+| 5 Too early | Segment 3: accept, take part 1, take part 2: the contract says it is not open yet |
+| 6 Approval and take | Segments 4 to 6: still refused without approval, the approver says yes, part 2 is taken |
+
+To re-record: `cd andum-web && VIDEOS=/tmp/v SHOTS=../docs/media/app npx playwright test journey`, then `node scripts/demo/make-ui-demo.mjs /tmp/v docs/media`. The journey waits about 3 minutes for the date, which the cut removes. A voice-over, burned-in captions and the cross-chain beat (7) are still to do. Say "NEAR testnet, test money" in the caption and post, as in section 1.3.

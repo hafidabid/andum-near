@@ -4,11 +4,15 @@
 
 ![Landing page](docs/media/web-landing-top.png)
 
-> **Status (12 Nov 2026):** the NEAR contracts and the EVM contracts are **deployed on testnet** and the full flow has run live against them through the real API, queue and worker. Everything is valueless test money. See [STATUS.md](STATUS.md) for what is done and what is not, and [ANDUM-PLAN.md](ANDUM-PLAN.md) for the design.
+> **Status (13 Nov 2026):** the NEAR contracts and the EVM contracts are **deployed on testnet**, and the **web app is wired to the API**: a sender, a recipient and an approver, each in their own browser, run the whole flow on NEAR testnet through the real API, queue and worker. Everything is valueless test money. See [STATUS.md](STATUS.md) for what is done and what is not, and [ANDUM-PLAN.md](ANDUM-PLAN.md) for the design.
 
 ## Watch it work
 
-Real API, relayer, worker, Postgres, Redis and email (Mailpit) against **NEAR testnet**, then the bridge against **Sepolia** (sped up; full video: [`docs/report/demo-live-testnet.mp4`](docs/report/demo-live-testnet.mp4)):
+**The product, in the browser** (three people, three browsers, NEAR testnet; full video: [`docs/media/app-demo.mp4`](docs/media/app-demo.mp4)). It is the recording of the automated browser test described under Tests, not a mock-up:
+
+![The web app on NEAR testnet](docs/media/app-demo.gif)
+
+**The backend, queue and bridge from a terminal.** Real API, relayer, worker, Postgres, Redis and email (Mailpit) against **NEAR testnet**, then the bridge against **Sepolia** (sped up; full video: [`docs/report/demo-live-testnet.mp4`](docs/report/demo-live-testnet.mp4)):
 
 ![Live run on NEAR testnet and Sepolia](docs/media/live-testnet.gif)
 
@@ -24,13 +28,28 @@ Sign-in is non-custodial: an email code proves the address, and the browser gene
 ![Sender flow: login, create, fund, invite](docs/media/demo-1-login.png)
 ![Recipient flow: verify, accept, claim, refused cases](docs/media/demo-2-accept.png)
 
-### The recipient's page
+### The app
 
-| Desktop | Mobile |
+Run it yourself in five minutes: [Try it locally](#try-the-app-locally).
+
+| Sender: wallet and builder | Sender: sent, link ready |
 |---|---|
-| ![Receiver link](docs/media/web-receiver-link.png) | ![Receiver on mobile](docs/media/web-mobile-receiver.png) |
+| ![Wallet and test tokens](docs/media/app/02-wallet.png) | ![Package sent](docs/media/app/04-sent.png) |
 
-The landing page and receiver view live in [`andum-web/`](andum-web/) (Vite + React). They are not wired to the API yet. A walkthrough: ![Landing page](docs/media/landing-page.gif)
+| Recipient: sees the funds before accepting | Recipient: the contract refuses part 2 until the approver says yes |
+|---|---|
+| ![Receiver preview](docs/media/app/05-receiver-preview.png) | ![Needs approval](docs/media/app/09-needs-approval.png) |
+
+| Approver | Everything taken |
+|---|---|
+| ![Approver](docs/media/app/10-approved.png) | ![All taken](docs/media/app/11-all-taken.png) |
+
+What the web app (`andum-web/`, Vite + React) does, all against the real API:
+
+- **Sender** (`/app`): email code sign-in, test-token faucet, balances, a builder for up to 8 parts (each opens now, on a date, or on a date plus 1 to 5 approvers), then create, fund, email the invite and set a custom link. A failed step can be retried without sending twice. Sent packages can be reclaimed after the deadline.
+- **Recipient** (`/p/<name>` or `/i/<id>`): sees the funds before accepting, signs in, proves the invite with a second code, accepts (the pass is minted), takes each part. Not-yet-open parts are refused by the contract and the reason is shown.
+- **Approver** (`/app`, "To approve"): approves the parts they were named on.
+- **Keys**: the browser creates the NEAR key and signs every action as a gasless delegate action. The server only sees the public key and signatures.
 
 ## Deployed contracts
 
@@ -89,14 +108,14 @@ Addresses are kept in [`deployments/sepolia.json`](deployments/sepolia.json). Ba
 | `backend/` | NestJS API: email login, sessions, invites + OTP, custom links, relay submit (policy checked), package reads, faucet, bridge quotes, SSE |
 | `worker/` | NestJS worker: relayer (BullMQ), reconciler/indexer, notifier, bridge worker |
 | `shared/` | NEP-366 codec, relayer policy engine, chain client, DB migrations, mailer |
-| `andum-web/` | Landing page and receiver view (separate Vite app) |
+| `andum-web/` | The web app: landing page, sender app, receiver and approver views (Vite + React), with unit tests and Playwright browser tests |
 | `scripts/` | `deploy-near.sh`, `deploy-evm.sh`, `keys.mjs`, `live/` (live checks), `demo/` (narrated demo), `report/` (video tools) |
 | `openspec/` | Specs and tasks per change (`openspec list`, `openspec validate --all`) |
 | `docs/` | [`LIVE-RUNBOOK.md`](docs/LIVE-RUNBOOK.md), [`interface-changes.md`](docs/interface-changes.md), [`report/`](docs/report/) (PDF report, videos, logs) |
 
 ## Tests
 
-457 automated tests, all passing: 288 TypeScript (shared 79, backend 146, worker 63), 131 Rust (124 unit, 7 on the compiled wasm in the NEAR sandbox), 38 Solidity. They cover positive, negative and edge cases.
+All of these pass: 288 TypeScript backend-side tests (shared 79, backend 146, worker 63), 131 Rust (124 unit, 7 on the compiled wasm in the NEAR sandbox), 38 Solidity, **238 web unit and integration tests and 10 browser end-to-end tests**. They cover positive, negative and edge cases.
 
 ![Test run](docs/media/tests-ts.png)
 
@@ -110,13 +129,48 @@ cargo test -p andum-integration -- --test-threads=1        # sandbox tests, down
 # EVM
 cd smart-contract-evm && forge test                         # 38 tests
 
-# TypeScript (needs Postgres and Redis)
+# TypeScript backend (needs Postgres and Redis)
 createdb andum_test    # defaults: postgres://andum@localhost:5544/andum_test and redis://localhost:6390
 npm install && npm run build -w shared
 npm test                                                    # shared + backend + worker
+
+# Web app
+cd andum-web && npm install && npm test                    # 238 tests, no network needed
 ```
 
 Override the test services with `TEST_DATABASE_URL` and `TEST_REDIS_URL`.
+
+**What the web tests cover**
+
+| Layer | Where | What |
+|---|---|---|
+| Form rules | `src/lib/draft.test.ts`, `money.test.ts` | Every bad input (email, amounts with 7 decimals or zero, dates in the past, 9 parts, approvers without a date, duplicate or too many approvers, threshold out of range, reserved link names) and the good ones, including amounts above 2^53 and time zones |
+| API client | `src/lib/api.test.ts` | Server error codes, non-JSON errors, empty bodies, network failure, timeout, plain-language text for every contract and API error |
+| Receiver pages | `src/pages/ReceivePage.test.tsx` | Link and invite routes, old-name redirect, unknown, malformed and rate-limited links, API down, expired, accepted and reclaimed packages; the sign-in, invite code and accept flow with wrong, expired and locked codes, resend cooldown, contract and relayer refusals, returning users |
+| Sender flow | `src/components/app/Send.test.tsx` | The signed calls are decoded and run through the relayer's own policy engine (`shared/src/policy.ts`), so a call the relayer would refuse fails the test; retry reuses the invite; a taken link name returns to the form |
+| Browser, API only | `e2e/guards.spec.ts` (9 tests) | A real browser against the real API: malformed, unknown and unreachable links; invalid email, wrong and short code, reload and sign-out, a second device without the key, the resend cooldown; the builder refuses every bad input and sends nothing |
+| Browser, full journey | `e2e/journey.spec.ts` | Three browsers on **NEAR testnet**: faucet, build, fund, email, preview, wrong invite code, accept, take part 1, part 2 refused too early, refused without approval, approver approves, part 2 taken, USDC balance checked, link locked for a stranger |
+
+```bash
+# with the stack running (see below) and the web app on :3000
+cd andum-web && npx playwright install chromium            # first time
+npm run test:e2e:guards                                     # about 1.5 minutes, no chain
+npm run test:e2e                                            # adds the testnet journey, about 5 minutes
+```
+
+## Try the app locally
+
+Needs Docker (for Mailpit, the local inbox), Postgres, Redis and the testnet keys. Full steps in [`docs/LIVE-RUNBOOK.md`](docs/LIVE-RUNBOOK.md).
+
+```bash
+docker compose up -d mailpit                 # inbox UI http://localhost:8025 (sign-in codes arrive here)
+npm install && npm run build
+set -a; . deployments/secrets/live.env; set +a   # generate with: node scripts/keys.mjs gen
+node backend/dist/main.js &  node worker/dist/main.js &
+cd andum-web && cp .env.example .env.local && npm install && npm run dev    # http://localhost:3000
+```
+
+Open http://localhost:3000/app and sign in with any email (read the code in Mailpit). Open the recipient's link in a **different browser profile or a private window**: each browser keeps its own key, one per email, so that is how one person plays the sender, the recipient and the approver. To approve, the approver signs in first and gives the sender the account shown at the top of the page.
 
 ## Run it against the deployed testnet contracts
 
@@ -141,5 +195,8 @@ To deploy your own copy: `./scripts/deploy-near.sh` (needs a funded testnet acco
 - The contract admin can upgrade the contract. It has no method that moves user funds.
 - The backend holds invite secrets (encrypted) and releases one only after an emailed code. The secret becomes public in the accept transaction (single use, short deadline).
 - Privy login is built but its NEAR signing is unverified; email login is the default path. Web3Auth is not implemented.
-- The web app is a landing page plus receiver view, not yet a working product UI.
+- The web app keeps each NEAR key in the browser's `localStorage`, unencrypted, and has no recovery screen yet: clearing site data loses the account (the API supports an encrypted key backup, the UI does not use it). A second device cannot sign in to the same email.
+- Sign-in codes are emailed through Mailpit locally. A real mail provider is not configured.
+- The web app covers NEAR packages only. Bridge, notifications settings and the EVM side are API features without a screen yet.
+- The browser tests need the live stack and testnet funds; the guard tests need only the API.
 - The HTML prototypes and `andum-web/` are design material; all contract and backend code here is new.

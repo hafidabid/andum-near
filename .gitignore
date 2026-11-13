@@ -22,3 +22,7 @@ docs/report
 deploy/.env.production
 deploy/deploy.conf
 *.sql.gz
+
+# hackathon submission material (videos, plans, remotion project): local only
+submission/
+.taste-skill/

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AssetIcon, AS } from '@/lib/assets'
 import { cx, dlab, fm, money } from '@/lib/format'
 import { HERO_EVENTS, HERO_MARKERS, HERO_MAX, HERO_PARTS, heroEventIndex, heroOpenAt, heroStat, stepHero } from '@/lib/hero'
-import { prototypeHref } from '@/lib/env'
+import { Link } from 'react-router-dom'
 import { useFrame } from '@/hooks/useFrame'
 import { useInView } from '@/hooks/useInView'
 import { useMedia, useReducedMotion } from '@/hooks/useMedia'
@@ -115,10 +115,8 @@ export function Hero() {
           </SectionLink>
         </div>
         <p className="recv">
-          Got a link from someone?{' '}
-          <a href={prototypeHref('#receive')} target="_blank" rel="noreferrer">
-            Open your package
-          </a>
+          Got a link from someone? Open it from your email.{' '}
+          <Link to="/app">Already sent one? Sign in</Link>
         </p>
         <div className="facts">
           <span>Funds visible before you accept</span>

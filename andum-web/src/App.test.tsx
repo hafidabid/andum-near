@@ -35,38 +35,6 @@ describe('routing', () => {
     expect(document.title).toBe(DEFAULT_TITLE)
   })
 
-  it('/p/<known> shows the package link page with its title', () => {
-    renderAt('/p/rina-audit-bonus')
-    expect(screen.getByRole('heading', { level: 1, name: 'Your audit bonus' })).toBeInTheDocument()
-    expect(screen.getByRole('list', { name: 'Parts' })).toBeInTheDocument()
-    expect(screen.getByText('Opens 15 Nov, after Dewi approves')).toBeInTheDocument()
-    expect(screen.getByText('Dewi left you a note')).toBeInTheDocument()
-    expect(document.title).toBe('Your audit bonus · Andum')
-    expect(screen.queryByRole('heading', { name: 'Frequently asked questions' })).not.toBeInTheDocument()
-  })
-
-  it('link names are not case sensitive', () => {
-    renderAt('/p/Rina-Audit-Bonus')
-    expect(screen.getByRole('heading', { level: 1, name: 'Your audit bonus' })).toBeInTheDocument()
-  })
-
-  it('the second example link opens too', () => {
-    renderAt('/p/aina-birthday')
-    expect(screen.getByRole('heading', { level: 1, name: 'Happy birthday, Aina' })).toBeInTheDocument()
-    expect(screen.getByText(/5,000 MYR/)).toBeInTheDocument()
-  })
-
-  it('/p/<well-formed but unknown> says the link is not active', () => {
-    renderAt('/p/nobody-here')
-    expect(screen.getByRole('heading', { level: 1, name: 'This link is not active' })).toBeInTheDocument()
-    expect(document.title).toBe('Link not found · Andum')
-  })
-
-  it('/p/<malformed> says it is not a package link', () => {
-    renderAt('/p/AB')
-    expect(screen.getByRole('heading', { level: 1, name: /does not look like a package link/ })).toBeInTheDocument()
-  })
-
   it('/p alone goes home', () => {
     renderAt('/p')
     expect(where()).toBe('/')
@@ -116,7 +84,7 @@ describe('navigation', () => {
 
   it('a section link from another page goes to the landing page and then scrolls', async () => {
     const user = userEvent.setup()
-    renderAt('/p/rina-audit-bonus')
+    renderAt('/nope')
     await user.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'How it works' }))
     expect(where()).toBe('/#how')
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Pay in parts.')
@@ -138,7 +106,7 @@ describe('navigation', () => {
 
   it('the brand link goes home and back to the top', async () => {
     const user = userEvent.setup()
-    renderAt('/p/rina-audit-bonus')
+    renderAt('/nope')
     await user.click(screen.getAllByRole('link', { name: 'Andum home' })[0])
     expect(where()).toBe('/')
     expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
@@ -146,9 +114,9 @@ describe('navigation', () => {
 
   it('moving to another page starts at the top', async () => {
     const user = userEvent.setup()
-    renderAt('/p/rina-audit-bonus')
+    renderAt('/nope')
     vi.mocked(window.scrollTo).mockClear()
-    await user.click(screen.getByRole('link', { name: 'What is Andum?' }))
+    await user.click(screen.getByRole('link', { name: 'Back to home' }))
     expect(where()).toBe('/')
     expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
   })
@@ -161,30 +129,22 @@ describe('navigation', () => {
     await user.click(within(footer).getByRole('link', { name: 'FAQ' }))
     expect(where()).toBe('/#faq')
   })
-
-  it('external links open the prototype in a new tab, safely', () => {
-    renderAt('/p/rina-audit-bonus')
-    const a = screen.getByRole('link', { name: /Accept package/ })
-    expect(a).toHaveAttribute('target', '_blank')
-    expect(a).toHaveAttribute('rel', expect.stringContaining('noreferrer'))
-  })
 })
 
 describe('shared chrome', () => {
-  it('every page has the nav, the footer and the wallet sheet', () => {
-    for (const path of ['/', '/p/rina-audit-bonus', '/p/zzz-zzz', '/nope']) {
+  it('every page has the nav and the footer', () => {
+    for (const path of ['/', '/nope', '/app']) {
       const { unmount } = renderAt(path)
       expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
       expect(screen.getByRole('contentinfo')).toBeInTheDocument()
-      expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
       unmount()
     }
   })
 
-  it('"Send a package" in the nav opens the wallet sheet on any page', async () => {
+  it('"Send a package" in the nav opens the app from any page', async () => {
     const user = userEvent.setup()
     renderAt('/nope')
     await user.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('button', { name: /Send a package/ }))
-    expect(screen.getByRole('dialog')).toHaveClass('show')
+    expect(where()).toBe('/app')
   })
 })

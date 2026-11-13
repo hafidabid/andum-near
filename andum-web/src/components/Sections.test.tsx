@@ -62,7 +62,7 @@ describe('<Receiving>', () => {
   it('lets you take the part once it is open (reduced motion shows the end state)', () => {
     wrap(<Receiving />)
     expect(screen.getByRole('button', { name: 'Take 800 USDC' })).toHaveAttribute('aria-disabled', 'false')
-    expect(screen.getByRole('link', { name: /Open an example package/ })).toHaveAttribute('target', '_blank')
+    expect(screen.getByRole('link', { name: /Send one yourself/ })).toHaveAttribute('href', '/app')
   })
 })
 

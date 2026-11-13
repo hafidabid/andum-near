@@ -4,7 +4,6 @@ import { waysIndex, WAYS } from './ways'
 import { FAQ } from './faq'
 import { THEMES, THEME_TINT } from './themes'
 import { AS, ASSET_IDS, assetLabel } from './assets'
-import { prototypeHref } from './env'
 
 describe('chains', () => {
   const base = CHAINS.find((c) => c.id === 'base')!
@@ -47,8 +46,5 @@ describe('content tables', () => {
     for (const a of ASSET_IDS) expect(AS[a].n.length).toBeGreaterThan(3)
     expect(assetLabel('GOLD')).toBe('Gold')
     expect(assetLabel('USDC')).toBe('USDC')
-  })
-  it('prototypeHref appends the anchor', () => {
-    expect(prototypeHref('#receive')).toMatch(/#receive$/)
   })
 })

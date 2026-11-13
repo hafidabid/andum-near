@@ -59,9 +59,9 @@ describe('<Hero>', () => {
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument()
   })
 
-  it('links to the sections and the prototype', () => {
+  it('links to the sections and the app', () => {
     setup()
     expect(screen.getByRole('link', { name: 'See how a package opens' })).toHaveAttribute('href', '/#ways')
-    expect(screen.getByRole('link', { name: 'Open your package' })).toHaveAttribute('href', expect.stringContaining('#receive'))
+    expect(screen.getByRole('link', { name: 'Already sent one? Sign in' })).toHaveAttribute('href', '/app')
   })
 })

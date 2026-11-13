@@ -5,7 +5,6 @@ import { Footer } from './Footer'
 import { ScrollManager } from './ScrollManager'
 import { TopBar } from './TopBar'
 import { WalletProvider } from './WalletContext'
-import { WalletSheet } from './WalletSheet'
 
 /** Chrome shared by every page: background light, navigation, footer, wallet sheet. */
 export function Layout() {
@@ -21,7 +20,6 @@ export function Layout() {
         <Footer />
       </main>
       <Dock />
-      <WalletSheet />
     </WalletProvider>
   )
 }

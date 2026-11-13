@@ -1,56 +1,24 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 
-export type SheetStep = 's1' | 's2' | 's3'
-
-interface WalletApi {
+interface AppLauncher {
+  /** Always false: kept so the dock can ask whether a sheet is covering the page. */
   isOpen: boolean
-  step: SheetStep
-  wallet: string
+  /** Go to the working app (sign in, build and send a package). */
   open: () => void
-  close: () => void
-  choose: (wallet: string) => void
 }
 
-const Ctx = createContext<WalletApi | null>(null)
+const Ctx = createContext<AppLauncher | null>(null)
 
-/** How long the "Connecting" step lasts before the wallet shows as connected. */
-export const CONNECT_MS = 1300
-
+/** Every "Send a package" call to action opens the real app at /app. */
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [isOpen, setOpen] = useState(false)
-  const [step, setStep] = useState<SheetStep>('s1')
-  const [wallet, setWallet] = useState('')
-
-  const open = useCallback(() => {
-    setStep('s1')
-    setOpen(true)
-  }, [])
-  const close = useCallback(() => setOpen(false), [])
-  const choose = useCallback((w: string) => {
-    setWallet(w)
-    setStep('s2')
-  }, [])
-
-  useEffect(() => {
-    if (step !== 's2') return
-    const t = setTimeout(() => setStep('s3'), CONNECT_MS)
-    return () => clearTimeout(t)
-  }, [step])
-
-  useEffect(() => {
-    if (!isOpen) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [isOpen])
-
-  const value = useMemo(() => ({ isOpen, step, wallet, open, close, choose }), [isOpen, step, wallet, open, close, choose])
+  const navigate = useNavigate()
+  const open = useCallback(() => navigate('/app'), [navigate])
+  const value = useMemo(() => ({ isOpen: false, open }), [open])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
-export function useWallet(): WalletApi {
+export function useWallet(): AppLauncher {
   const v = useContext(Ctx)
   if (!v) throw new Error('useWallet must be used inside <WalletProvider>')
   return v

@@ -3,13 +3,15 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { COMPOSER_AXIS, Composer, INITIAL_PARTS, parseAmount, withRule } from './Composer'
 import { WalletProvider } from './WalletContext'
-import { WalletSheet } from './WalletSheet'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 
 const setup = () =>
   render(
-    <WalletProvider>
-      <Composer />
-    </WalletProvider>,
+    <MemoryRouter>
+      <WalletProvider>
+        <Composer />
+      </WalletProvider>
+    </MemoryRouter>,
   )
 
 describe('composer helpers', () => {
@@ -95,17 +97,19 @@ describe('<Composer>', () => {
     expect(within(steps as HTMLElement).getByText('Drag the dates').closest('span')).toHaveClass('on')
   })
 
-  it('the call to action opens the wallet sheet', async () => {
+  it('the call to action opens the app', async () => {
     const user = userEvent.setup()
+    function Where() { return <output data-testid="where">{useLocation().pathname}</output> }
     render(
-      <WalletProvider>
-        <Composer />
-        <WalletSheet />
-      </WalletProvider>,
+      <MemoryRouter>
+        <WalletProvider>
+          <Composer />
+        </WalletProvider>
+        <Where />
+      </MemoryRouter>,
     )
-    const dialog = screen.getByRole('dialog', { hidden: true })
-    expect(dialog).not.toHaveClass('show')
+    expect(screen.getByTestId('where')).toHaveTextContent('/')
     await user.click(screen.getByRole('button', { name: /Send this package/ }))
-    expect(dialog).toHaveClass('show')
+    expect(screen.getByTestId('where')).toHaveTextContent('/app')
   })
 })

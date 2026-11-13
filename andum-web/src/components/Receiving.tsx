@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AS, AssetIcon, type AssetId } from '@/lib/assets'
 import { cx, fm } from '@/lib/format'
-import { prototypeHref } from '@/lib/env'
+import { Link } from 'react-router-dom'
 import { useInView } from '@/hooks/useInView'
 import { useReducedMotion } from '@/hooks/useMedia'
 import { CheckIcon, LockIcon, MailIcon } from './Icons'
@@ -84,9 +84,9 @@ export function Receiving() {
             ))}
           </ul>
           <div className="mt-[30px]">
-            <a className="btn ghost" href={prototypeHref('#receive')} target="_blank" rel="noreferrer">
-              Open an example package <span className="arr">→</span>
-            </a>
+            <Link className="btn ghost" to="/app">
+              Send one yourself <span className="arr">→</span>
+            </Link>
           </div>
         </Rv>
         <Rv delay={150}>

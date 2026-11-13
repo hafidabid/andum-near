@@ -73,6 +73,7 @@ describe('Send: the calls the browser signs are the calls the relayer and contra
     expect(api.calls.find((c) => c.key === 'POST /v1/invites/inv9/attach')!.body).toEqual({ package_id: '9', tx_hash: 'TXr1' })
     expect(api.calls.find((c) => c.key === 'PATCH /v1/invites/inv9/link')!.body).toEqual({ title: 'T' })
     expect(await screen.findByLabelText('Package link')).toHaveValue('http://localhost:3000/p/my-link')
+    expect(screen.queryByRole('link', { name: /Open as the recipient/i })).not.toBeInTheDocument()
   })
 
   it('a refused create shows the reason, keeps the form data and "Try again" resumes without a second invite', async () => {

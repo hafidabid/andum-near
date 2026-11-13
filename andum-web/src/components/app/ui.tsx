@@ -3,15 +3,15 @@ import { cx } from '@/lib/format'
 import { txUrl } from '@/lib/chain'
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx('rounded-2xl border border-line bg-card p-5', className)}>{children}</div>
+  return <div className={cx('rounded-[14px] border border-line bg-card p-5', className)}>{children}</div>
 }
 
-export const inputCls = 'w-full rounded-xl border border-line2 bg-bg2 px-3.5 py-3 text-[16px] text-fg placeholder:text-faint outline-none focus:border-open disabled:opacity-60'
+export const inputCls = 'w-full rounded-lg border border-line2 bg-bg2 px-3 py-2.5 text-[15px] text-fg placeholder:text-faint outline-none transition-colors focus:border-open disabled:opacity-60'
 
 export function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string | null; children: ReactNode }) {
   return (
     <label className="grid gap-1.5 text-left">
-      <span className="text-[13px] font-medium text-muted">{label}</span>
+      <span className="text-[13px] font-medium leading-5 text-muted">{label}</span>
       {children}
       {error ? <span role="alert" className="text-[13px] text-bad">{error}</span> : hint ? <span className="text-[12.5px] text-faint">{hint}</span> : null}
     </label>
@@ -46,12 +46,12 @@ export function useCountdown(initial: number): [number, (n: number) => void] {
 export type StepState = 'todo' | 'doing' | 'done' | 'fail'
 export function StepList({ steps }: { steps: Array<{ label: string; state: StepState; extra?: ReactNode }> }) {
   return (
-    <ol className="grid gap-2.5" aria-label="Progress">
+    <ol className="dispatch-steps" aria-label="Progress">
       {steps.map((s, i) => (
         <li key={i} className="flex items-center gap-3 text-[15px]" data-state={s.state}>
           <span className={cx('grid h-6 w-6 place-items-center rounded-full border text-[12px]',
             s.state === 'done' && 'border-open bg-open/15 text-open', s.state === 'doing' && 'border-blue text-blue', s.state === 'fail' && 'border-bad text-bad', s.state === 'todo' && 'border-line2 text-faint')}>
-            {s.state === 'done' ? '✓' : s.state === 'fail' ? '!' : s.state === 'doing' ? <Spinner /> : i + 1}
+            {s.state === 'done' ? 'OK' : s.state === 'fail' ? '!' : s.state === 'doing' ? <Spinner /> : i + 1}
           </span>
           <span className={cx(s.state === 'todo' ? 'text-faint' : 'text-fg')}>{s.label}</span>
           {s.extra}

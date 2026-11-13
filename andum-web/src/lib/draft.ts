@@ -14,6 +14,7 @@ export interface PartDraft {
   amount: string
   dated: boolean
   date: string             // datetime-local value
+  approvalRequired: boolean
   approvers: string        // comma or space separated NEAR accounts
   threshold: string
 }
@@ -21,7 +22,7 @@ export interface Draft {
   email: string; title: string; note: string; theme: ThemeId; slug: string; acceptHours: string; parts: PartDraft[]
 }
 
-export const emptyPart = (asset = 'usdc'): PartDraft => ({ asset, amount: '', dated: false, date: '', approvers: '', threshold: '1' })
+export const emptyPart = (asset = 'usdc'): PartDraft => ({ asset, amount: '', dated: false, date: '', approvalRequired: false, approvers: '', threshold: '1' })
 export const emptyDraft = (): Draft => ({ email: '', title: '', note: '', theme: 'confetti', slug: '', acceptHours: '24', parts: [emptyPart()] })
 
 export const splitApprovers = (s: string): string[] => s.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean)
@@ -65,6 +66,7 @@ export function buildDraft(d: Draft, nowMs: number): { ok: true; built: Built } 
     }
     const approvers = splitApprovers(p.approvers)
     let threshold: number | undefined
+    if (p.approvalRequired && !approvers.length) e.approvers = 'Add at least one NEAR account that can approve this part.'
     if (approvers.length) {
       if (!p.dated) e.approvers = 'Approvers need a date. The part opens on the date and after approval.'
       else if (approvers.length > MAX_APPROVERS) e.approvers = `At most ${MAX_APPROVERS} approvers.`

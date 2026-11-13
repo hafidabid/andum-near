@@ -434,6 +434,39 @@ footer a{text-decoration:none;display:block;padding:3px 0;transition:color .25s}
   .rv{opacity:1;transform:none}.hero h1 .w,.hero .sub,.hero .cta,.hero .recv,.facts,.stage{opacity:1;filter:none;transform:none}
 }
 
+/* Sender workspace: a quiet dispatch sheet. The accent line is reserved for the
+   currently selected task; release state keeps its own semantic colour. */
+.dispatch-shell{font-variant-numeric:tabular-nums}
+.dispatch-tabs{display:flex;gap:28px;border-bottom:1px solid var(--line)}
+.dispatch-tab{position:relative;padding:0 0 11px;color:var(--muted);font-size:14px;line-height:20px;transition:color .18s var(--ease)}
+.dispatch-tab:hover{color:var(--fg)}
+.dispatch-tab::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--open);transform:scaleX(0);transform-origin:left;transition:transform .18s var(--ease)}
+.dispatch-tab.is-active{color:var(--fg)}
+.dispatch-tab.is-active::after{transform:scaleX(1)}
+.dispatch-steps{display:grid;gap:0;margin:0;padding:0;list-style:none}
+.dispatch-steps li{min-height:42px;padding:8px 0;border-bottom:1px solid var(--line)}
+.dispatch-steps li:last-child{border-bottom:0}
+.dispatch-steps li span:first-child{width:22px;height:22px;border-radius:50%;font-size:11px}
+.part-form{background:rgba(255,255,255,.012)}
+.part-form legend{color:var(--faint)}
+.dispatch-check{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;align-items:start;color:var(--muted);cursor:pointer}
+.dispatch-check input{appearance:none;width:16px;height:16px;margin:3px 0 0;border:1px solid var(--line2);border-radius:4px;background:var(--bg2);display:grid;place-content:center;cursor:pointer}
+.dispatch-check input::before{content:"";width:8px;height:8px;transform:scale(0);transition:transform .12s var(--ease);background:var(--open);border-radius:1px}
+.dispatch-check input:checked{border-color:var(--open)}
+.dispatch-check input:checked::before{transform:scale(1)}
+.dispatch-check b{display:block;color:var(--fg);font-size:14px;font-weight:500;line-height:20px}
+.dispatch-check small{display:block;margin-top:1px;color:var(--muted);font-size:12.5px;line-height:18px}
+.dispatch-shell .btn{border-radius:8px;padding:10px 16px;font-size:14px;line-height:20px;box-shadow:none}
+.dispatch-shell .btn:hover{box-shadow:none;transform:translateY(-1px)}
+.dispatch-shell .btn.ghost{border-color:var(--line2)}
+.dispatch-shell .btn:not(.ghost){background:var(--fg);color:var(--bg)}
+.dispatch-shell textarea.input{min-height:72px}
+@media (max-width:640px){
+  .dispatch-tabs{gap:20px;overflow-x:auto}
+  .dispatch-tab{flex:none}
+  .dispatch-shell{gap:20px}
+}
+
 /* ===== mobile + tablet polish =====
    Desktop keeps the pinned, scroll-driven chapters. Below 900px the same content becomes things you touch:
    a swipeable carousel for the three ways, a connected stepper for the flow, a docked action button,

@@ -35,13 +35,13 @@ export function AppPage() {
     )
   }
   return (
-    <section className="!pt-[100px]">
-      <div className="mx-auto grid max-w-[720px] gap-5">
+    <section className="!pt-[96px]">
+      <div className="dispatch-shell mx-auto grid max-w-[760px] gap-6">
         <WalletStrip balances={balances} refresh={refresh} />
-        <div role="tablist" className="flex gap-2" aria-label="Sections">
+        <div role="tablist" className="dispatch-tabs" aria-label="Package workspace">
           {TABS.map(([id, label]) => (
             <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
-              className={cx('rounded-full border px-4 py-2 text-[14px] transition', tab === id ? 'border-fg bg-fg text-bg' : 'border-line text-muted hover:text-fg')}>{label}</button>
+              className={cx('dispatch-tab', tab === id && 'is-active')}>{label}</button>
           ))}
         </div>
         {tab === 'send' && <Send balances={balances} onDone={() => { setVersion((v) => v + 1); void refresh() }} />}

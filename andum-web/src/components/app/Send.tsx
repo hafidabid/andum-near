@@ -109,7 +109,10 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
     const states: StepState[] = STEPS.map((_, i) => (failed === i ? 'fail' : i < step || step === STEPS.length ? 'done' : i === step && failed === null ? 'doing' : 'todo'))
     return (
       <Card className="grid gap-5" >
-        <h2 className="font-display text-[24px]">{link ? 'Sent' : 'Sending your package'}</h2>
+        <div className="grid gap-1 border-b border-line pb-4">
+          <span className="mono text-[11px]">Dispatch status</span>
+          <h2 className="font-display text-[24px]">{link ? 'Package sent' : 'Sending your package'}</h2>
+        </div>
         <StepList steps={STEPS.map((label, i) => ({ label, state: states[i], extra: detail[i] && states[i] === 'doing' ? <span className="text-[13px] text-muted">{detail[i]}</span> : i === 1 && run.current.createTx && states[i] === 'done' ? <TxLink hash={run.current.createTx} /> : null }))} />
         {err && <Notice>{err}</Notice>}
         {failed !== null && (
@@ -120,11 +123,11 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
         )}
         {link && (
           <div className="grid gap-3" data-done="true">
-            <Notice kind="ok">Package #{run.current.pkgId} is funded and the invite was emailed.</Notice>
-            <Field label="Link for the recipient"><input className={inputCls + ' font-mono text-[14px] normal-case tracking-normal'} readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Package link" /></Field>
+            <Notice kind="ok">Package #{run.current.pkgId} is funded. The recipient has been emailed.</Notice>
+            <Field label="Recipient link"><input className={inputCls + ' font-mono text-[14px] normal-case tracking-normal'} readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Package link" /></Field>
+            <p className="text-[13px] text-muted">Keep this link if you need to send it again. The recipient opens it from their email.</p>
             <div className="flex flex-wrap gap-3">
               <button className="btn" onClick={() => void navigator.clipboard?.writeText(link)}>Copy link</button>
-              <a className="btn ghost" href={link} target="_blank" rel="noreferrer">Open as the recipient</a>
               <button className="btn ghost" onClick={reset}>Send another</button>
             </div>
           </div>
@@ -137,9 +140,9 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
   const pe = (i: number, k: string) => problems?.parts[i]?.[k]
   return (
     <form onSubmit={submit} className="grid gap-5" noValidate aria-label="New package">
-      <Card className="grid gap-4">
-        <h2 className="font-display text-[22px]">Who is it for</h2>
-        <Field label="Recipient email" error={problems?.form.email}><input className={inputCls} type="email" placeholder="rina@example.com" value={d.email} onChange={(e) => setD({ ...d, email: e.target.value })} aria-label="Recipient email" /></Field>
+      <Card className="grid gap-5">
+        <div className="border-b border-line pb-4"><span className="mono text-[11px]">01 · Recipient</span><h2 className="mt-1 font-display text-[22px]">Who is it for?</h2></div>
+        <Field label="Recipient email" error={problems?.form.email}><input className={inputCls} type="email" value={d.email} onChange={(e) => setD({ ...d, email: e.target.value })} aria-label="Recipient email" /></Field>
         <div className="grid items-start gap-4 sm:grid-cols-2">
           <Field label="Title (optional)" error={problems?.form.title}><input className={inputCls} placeholder="Your audit bonus" value={d.title} onChange={(e) => setD({ ...d, title: e.target.value })} aria-label="Title" /></Field>
           <Field label="Link name (optional)" error={problems?.form.slug} hint="andum link: /p/your-name"><input className={inputCls} placeholder="rina-audit-bonus" value={d.slug} onChange={(e) => setD({ ...d, slug: e.target.value.toLowerCase() })} aria-label="Link name" /></Field>
@@ -151,22 +154,24 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
         </div>
       </Card>
 
-      <Card className="grid gap-4">
-        <div className="flex items-center justify-between"><h2 className="font-display text-[22px]">Parts</h2><span className="text-[13px] text-muted">{d.parts.length} of {MAX_PARTS}</span></div>
+      <Card className="grid gap-5">
+        <div className="flex items-end justify-between border-b border-line pb-4"><div><span className="mono text-[11px]">02 · Contents</span><h2 className="mt-1 font-display text-[22px]">Parts</h2></div><span className="text-[13px] text-muted">{d.parts.length} of {MAX_PARTS}</span></div>
         {d.parts.map((p, i) => (
-          <fieldset key={i} className="grid gap-3 rounded-xl border border-line p-3.5" aria-label={`Part ${i + 1}`}>
-            <div className="grid grid-cols-[1fr_1.2fr] gap-3">
+          <fieldset key={i} className="part-form grid gap-4 rounded-xl border border-line p-4" aria-label={`Part ${i + 1}`}>
+            <legend className="mono px-1 text-[11px]">Part {i + 1}</legend>
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Asset"><div className="asel"><AssetIcon a={assetFromKey(p.asset)} size={22} /><select className={inputCls + ' appearance-none pl-11'} value={p.asset} onChange={(e) => setPart(i, { asset: e.target.value })} aria-label={`Part ${i + 1} asset`}>{ASSET_GROUPS.map(([g, opts]) => <optgroup key={g} label={g}>{opts.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</optgroup>)}</select></div></Field>
               <Field label="Amount" error={pe(i, 'amount')}><input className={inputCls} inputMode="decimal" placeholder="200" value={p.amount} onChange={(e) => setPart(i, { amount: e.target.value })} aria-label={`Part ${i + 1} amount`} /></Field>
             </div>
-            <label className="flex items-center gap-2 text-[14px] text-muted"><input type="checkbox" checked={p.dated} onChange={(e) => setPart(i, { dated: e.target.checked })} aria-label={`Part ${i + 1} opens on a date`} /> Opens on a date (otherwise right after they accept)</label>
+            <label className="dispatch-check"><input type="checkbox" checked={p.dated} onChange={(e) => setPart(i, { dated: e.target.checked, approvalRequired: e.target.checked ? p.approvalRequired : false, approvers: e.target.checked ? p.approvers : '' })} aria-label={`Part ${i + 1} opens on a date`} /><span><b>Release on a date</b><small>Otherwise it is available as soon as they accept.</small></span></label>
             {p.dated && (
               <>
                 <Field label="Opens at" error={pe(i, 'date')}><input className={inputCls} type="datetime-local" value={p.date} onChange={(e) => setPart(i, { date: e.target.value })} aria-label={`Part ${i + 1} date`} /></Field>
-                <div className="grid grid-cols-[1fr_.5fr] gap-3">
-                  <Field label="Approvers (optional)" error={pe(i, 'approvers')} hint="NEAR accounts, separated by commas"><input className={inputCls} placeholder="account1, account2" value={p.approvers} onChange={(e) => setPart(i, { approvers: e.target.value })} aria-label={`Part ${i + 1} approvers`} /></Field>
-                  <Field label="Needed" error={pe(i, 'threshold')}><input className={inputCls} inputMode="numeric" value={p.threshold} onChange={(e) => setPart(i, { threshold: e.target.value })} aria-label={`Part ${i + 1} approvals needed`} /></Field>
-                </div>
+                <label className="dispatch-check"><input type="checkbox" checked={p.approvalRequired} onChange={(e) => setPart(i, { approvalRequired: e.target.checked, approvers: e.target.checked ? p.approvers : '' })} aria-label={`Part ${i + 1} requires approval`} /><span><b>Require approval before release</b><small>Approvers confirm after the date arrives.</small></span></label>
+                {p.approvalRequired && <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_140px]">
+                  <Field label="Approvers" error={pe(i, 'approvers')} hint="NEAR accounts, separated by commas"><input className={inputCls} placeholder="account1, account2" value={p.approvers} onChange={(e) => setPart(i, { approvers: e.target.value })} aria-label={`Part ${i + 1} approvers`} /></Field>
+                  <Field label="Approvals needed" error={pe(i, 'threshold')}><input className={inputCls} inputMode="numeric" value={p.threshold} onChange={(e) => setPart(i, { threshold: e.target.value })} aria-label={`Part ${i + 1} approvals needed`} /></Field>
+                </div>}
               </>
             )}
             {pe(i, 'approvers') && !p.dated && <Notice>{pe(i, 'approvers')}</Notice>}

@@ -1,80 +1,86 @@
+<div align="center">
+
+<img src="andum-web/public/favicon.svg" width="56" height="56" alt="Andum">
+
 # Andum
 
-**Programmable gifts, payments, rewards, and surprises—seamlessly cross-chain.**
+### Programmable gifts and payments. One package, a different rule for every part.
 
-Andum lets you send money, gold, or tokenized stocks in one package. Each part follows its own release rule: when the recipient accepts, on a date, or after a date and an approver’s confirmation. Recipients can see what is inside before accepting, and the sender pays no gas.
+Send money, gold or tokenized stocks in a single package.<br>
+Each part opens on its own terms. The sender pays no gas.
+
+[**Live landing page**](https://andum.projectdeadwood.my.id/) &nbsp;·&nbsp; [**Demo video**](docs/media/app-demo.mp4) &nbsp;·&nbsp; [Product plan](ANDUM-PLAN.md) &nbsp;·&nbsp; [Status](STATUS.md)
+
+![NEAR testnet](https://img.shields.io/badge/NEAR-testnet-111?style=flat-square&logo=near&logoColor=white)
+![Sepolia](https://img.shields.io/badge/EVM-Sepolia-111?style=flat-square&logo=ethereum&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-705%20passing-2ea44f?style=flat-square)
+![Gasless](https://img.shields.io/badge/sender%20gas-zero-0b7285?style=flat-square)
+
+<br>
+
+<a href="https://andum.projectdeadwood.my.id/"><img src="docs/media/andum-package-banner.gif" alt="An Andum package splitting into three release paths: immediate, date-based, approval-gated" width="100%"></a>
+
+</div>
+
+<br>
+
+## The idea
+
+A normal transfer is all or nothing. Andum lets the sender decide **when** each slice of a gift, salary or reward becomes available, and lets the recipient **see the funds before accepting**.
+
+| Opens when the recipient accepts | Opens on a date | Opens on a date, after an approver agrees |
+|:---|:---|:---|
+| A welcome amount, available at once | A bonus that unlocks on a birthday or deadline | A milestone payment released by an independent person |
+
+- Up to 8 parts per package, in any mix of money, gold and stocks
+- Approvers can be required in groups, for example 2 of 3
+- Unaccepted or expired packages go back to the sender
+- Every rule is enforced by the contract, not by the app
+
+<br>
+
+<div align="center">
+<img src="docs/media/app/03-builder.png" alt="The package builder, with one release rule per part" width="88%">
+<br>
+<sub>The package builder. Each part carries its own release rule.</sub>
+</div>
+
+<br>
+
+> **Status: working prototype on NEAR testnet and Sepolia.** The full sender, recipient and approver journey runs end to end with separate browser accounts. All tokens are valueless test assets. Scope is in [STATUS.md](STATUS.md).
+
+## The journey in 60 seconds
+
+<div align="center">
+<img src="docs/media/app-demo.gif" alt="Recorded run of the web app on NEAR testnet" width="88%">
+<br>
+<sub>Recorded from the automated browser test, three people, real testnet. <a href="docs/media/app-demo.mp4">Full video</a></sub>
+</div>
+
+<br>
 
 <table>
-  <tr>
-    <td width="58%"><a href="https://andum.projectdeadwood.my.id/"><img src="docs/media/andum-package-banner.gif" alt="Illustration of an Andum package splitting into three release paths: immediate, date-based, and approval-gated"></a></td>
-    <td width="42%" valign="middle">
-      <p><img src="andum-web/public/favicon.svg" width="28" height="28" alt="Andum mark"> <strong>Andum</strong></p>
-      <h3>One package. Different rules for every part.</h3>
-      <p>Split a gift, payment, or reward into parts that open at different times.</p>
-      <ul>
-        <li>Release on acceptance, on a date, or after approval</li>
-        <li>Show recipients the funded package before they accept</li>
-        <li>Let an independent approver release milestone-based parts</li>
-        <li>Send without asking the sender to pay network gas</li>
-      </ul>
-      <p><a href="https://andum.projectdeadwood.my.id/">Explore the landing page</a> · <a href="docs/media/app-demo.mp4">Watch the testnet demo</a></p>
-    </td>
-  </tr>
+<tr>
+<td width="33%" valign="top"><img src="docs/media/app/04-sent.png" alt="Sent"><br><b>1 · Send</b><br>The sender builds and funds the package. Every part is locked in the contract.</td>
+<td width="33%" valign="top"><img src="docs/media/app/05-receiver-preview.png" alt="Receiver preview"><br><b>2 · Preview</b><br>The recipient opens a link and sees what is inside before accepting.</td>
+<td width="33%" valign="top"><img src="docs/media/app/07-accepted.png" alt="Accepted"><br><b>3 · Accept</b><br>An emailed code proves identity. Accepting mints a non-transferable pass.</td>
+</tr>
+<tr>
+<td valign="top"><img src="docs/media/app/08-too-early.png" alt="Too early"><br><b>4 · Enforce</b><br>A locked part is refused by the contract: too early, then not approved.</td>
+<td valign="top"><img src="docs/media/app/10-approved.png" alt="Approver"><br><b>5 · Approve</b><br>A different person with a different key releases the final part.</td>
+<td valign="top"><img src="docs/media/app/12-balance.png" alt="Balance"><br><b>6 · Receive</b><br>The money lands in the recipient's account. A claim can never be taken twice.</td>
+</tr>
 </table>
 
-![Andum package builder with per-part release rules](docs/media/app/03-builder.png)
+<details>
+<summary>More screens: wallet, wrong code, mobile</summary>
+<br>
 
-> **Working prototype · NEAR testnet and Sepolia.** The full sender, recipient, and approver journey runs on NEAR testnet using separate browser accounts. Tokens are valueless test assets. See [STATUS.md](STATUS.md) for current scope and [ANDUM-PLAN.md](ANDUM-PLAN.md) for the product design.
+| Wallet and faucet | Wrong code refused | Mobile receiver |
+|:---:|:---:|:---:|
+| <img src="docs/media/app/02-wallet.png" alt="Wallet"> | <img src="docs/media/app/06-wrong-code.png" alt="Wrong code"> | <img src="docs/media/app/13-mobile-receiver.png" alt="Receiver on mobile" width="200"> |
 
-## See the package journey
-
-Three roles, separate browser accounts, and a real NEAR testnet flow. This recording comes from the automated browser journey (full video: [`docs/media/app-demo.mp4`](docs/media/app-demo.mp4)):
-
-![The web app on NEAR testnet](docs/media/app-demo.gif)
-
-### 1. The sender sets the rules
-
-Sign in with an email code, get test tokens, add parts. Part 1 opens when the recipient accepts. Part 2 opens on a date **and** needs an approver.
-
-| Wallet and test tokens | Package builder |
-|---|---|
-| ![Wallet](docs/media/app/02-wallet.png) | ![Builder](docs/media/app/03-builder.png) |
-
-### 2. The package is funded and the recipient link is sent
-
-The package is created, every part is funded, the recipient is emailed and the link is set. The sender pays no gas.
-
-![Sent](docs/media/app/04-sent.png)
-
-### 3. The recipient reviews the package before accepting
-
-The link shows what is inside and how each part opens. Accepting needs a code from the recipient's email, and a wrong code is refused.
-
-| Preview | Wrong code refused |
-|---|---|
-| ![Receiver preview](docs/media/app/05-receiver-preview.png) | ![Wrong code](docs/media/app/06-wrong-code.png) |
-
-### 4. The contract enforces each release rule
-
-Accepting mints the pass. Part 1 can be taken now. Part 2 is refused by the contract, first because it is too early and then because nobody has approved yet.
-
-| Accepted | Too early | Waiting for approval |
-|---|---|---|
-| ![Accepted](docs/media/app/07-accepted.png) | ![Too early](docs/media/app/08-too-early.png) | ![Needs approval](docs/media/app/09-needs-approval.png) |
-
-### 5. An independent approver releases the final part
-
-The approver is a different person with a different key. After approval the recipient takes part 2 and the money is in their account.
-
-| Approver | Everything taken | Balance |
-|---|---|---|
-| ![Approver](docs/media/app/10-approved.png) | ![All taken](docs/media/app/11-all-taken.png) | ![Balance](docs/media/app/12-balance.png) |
-
-It works on a phone too:
-
-| The recipient's link | Sign in |
-|---|---|
-| <img src="docs/media/app/13-mobile-receiver.png" width="300" alt="Receiver on mobile"> | <img src="docs/media/app/14-mobile-sign-in.png" width="300" alt="Sign-in on mobile"> |
+</details>
 
 ## How it works
 

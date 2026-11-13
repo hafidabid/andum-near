@@ -3,7 +3,10 @@ const RPCS: string[] = (import.meta.env.VITE_NEAR_RPC ?? 'https://test.rpc.fastn
 export const NEAR_ROOT: string = import.meta.env.VITE_NEAR_ROOT ?? 'hafidbuild.testnet'
 export const NEAR_CORE: string = import.meta.env.VITE_NEAR_CORE ?? `core.${NEAR_ROOT}`
 export const EXPLORER: string = (import.meta.env.VITE_EXPLORER ?? 'https://testnet.nearblocks.io').replace(/\/$/, '')
+export const NEAR_BRIDGE: string = import.meta.env.VITE_NEAR_BRIDGE ?? `bridge.${NEAR_ROOT}`
 export const TGAS = 10n ** 12n
+/** NEP-145 minimum to register one account with a token (what the relayer policy accepts). */
+export const STORAGE_DEPOSIT = 1_250_000_000_000_000_000_000n
 export const txUrl = (hash: string): string => `${EXPLORER}/txns/${hash}`
 export const accountUrl = (id: string): string => `${EXPLORER}/address/${id}`
 
@@ -50,4 +53,10 @@ export async function blockHeight(): Promise<bigint> {
 
 export async function nearBalanceYocto(account: string): Promise<bigint> {
   try { return BigInt((await rpc<{ amount: string }>('query', { request_type: 'view_account', finality: 'final', account_id: account })).amount) } catch { return 0n }
+}
+
+/** Is this account registered to hold the token? (NEP-145). A transfer to an unregistered account is refused by the token. */
+export async function isRegistered(assetKey: string, account: string): Promise<boolean> {
+  const r = await viewCall<{ total: string } | null>(tokenAccount(assetKey), 'storage_balance_of', { account_id: account })
+  return r !== null
 }

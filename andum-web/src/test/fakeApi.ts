@@ -28,6 +28,11 @@ function rpc(b: { method: string; params: any }) {
   const ok = (result: unknown) => new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result }))
   if (b.method === 'status') return ok({ sync_info: { latest_block_height: 1000 } })
   if (b.method === 'query' && b.params.request_type === 'view_access_key') return ok({ nonce: 7 })
+  // storage_balance_of: an address that starts with `new.` is not registered with the token yet
+  if (b.method === 'query' && b.params.method_name === 'storage_balance_of') {
+    const who = JSON.parse(atob(b.params.args_base64)).account_id as string
+    return ok({ result: Array.from(new TextEncoder().encode(who.startsWith('new.') ? 'null' : '{"total":"1250000000000000000000","available":"0"}')) })
+  }
   if (b.method === 'query' && b.params.request_type === 'call_function') return ok({ result: Array.from(new TextEncoder().encode('"10000000000"')) })
   return ok({})
 }

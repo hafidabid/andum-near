@@ -12,6 +12,13 @@ export function toBase(input: string): string | null {
   return v > 0n ? v.toString() : null
 }
 
+/** "1234500000" -> "1234.5" (exact, no separators, to fill an amount field) */
+export function baseToInput(base: string): string {
+  const v = BigInt(base)
+  const f = (v % ONE).toString().padStart(DECIMALS, '0').replace(/0+$/, '')
+  return `${v / ONE}${f ? '.' + f : ''}`
+}
+
 /** "1234500000" -> "1,234.5" */
 export function fromBase(base: string, maxDp = 2): string {
   const v = BigInt(base)

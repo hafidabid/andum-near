@@ -35,7 +35,7 @@ const TEXT: Record<string, string> = {
 }
 
 export function errorText(e: unknown): string {
-  if (e instanceof ChainError) return TEXT[e.code] ?? e.message
+  if (e instanceof ChainError) return TEXT[e.code] ?? friendlyChain(e.message)
   if (e instanceof ApiError) {
     if (e.code === 'OTP_INVALID' && typeof e.details.attempts_left === 'number') return `That code is not right. ${e.details.attempts_left} tries left.`
     return TEXT[e.code] ?? e.message
@@ -49,4 +49,12 @@ export class ChainError extends Error {
     super(message)
     this.name = 'ChainError'
   }
+}
+
+/** The token contract's own wording, in plain language. */
+function friendlyChain(m: string): string {
+  if (/not registered/i.test(m)) return 'That address is not set up to receive this asset yet.'
+  if (/does not have enough balance|not enough balance/i.test(m)) return 'There is not enough balance for this.'
+  if (/NotEnoughBalance|LackBalanceForState|lack.*balance/i.test(m)) return 'Your account needs a little more NEAR for the network deposit. Get test NEAR from your balances, then try again.'
+  return m
 }

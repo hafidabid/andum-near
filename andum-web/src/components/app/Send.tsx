@@ -6,9 +6,15 @@ import { errorText } from '@/lib/errors'
 import { THEMES, type ThemeId } from '@/lib/themes'
 import { Card, Field, Notice, StepList, TxLink, inputCls, type StepState } from './ui'
 import { useSession } from './Session'
-import { fromBase } from '@/lib/money'
+import { assetFromKey, fromBase } from '@/lib/money'
+import { AssetIcon } from '@/lib/assets'
 
-const ASSET_OPTIONS: Array<[string, string]> = [['usdc', 'USDC'], ['idrx', 'IDRX'], ['myr', 'MYR'], ['xau', 'Gold (g)'], ['aapl', 'AAPL']]
+/** What a sender can put in a part, grouped so money, gold and stocks are easy to tell apart. */
+const ASSET_GROUPS: Array<[string, Array<[string, string]>]> = [
+  ['Money', [['usdc', 'USDC · US dollar'], ['idrx', 'IDRX · Indonesian rupiah'], ['myr', 'MYR · Malaysian ringgit']]],
+  ['Gold', [['xau', 'Gold (g) · tokenized gold']]],
+  ['Stocks', [['aapl', 'AAPL · Apple'], ['nvda', 'NVDA · Nvidia'], ['pltr', 'PLTR · Palantir']]],
+]
 
 interface Run {
   invite?: { invite_id: string; invite_hash_b64: string }
@@ -150,7 +156,7 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
         {d.parts.map((p, i) => (
           <fieldset key={i} className="grid gap-3 rounded-xl border border-line p-3.5" aria-label={`Part ${i + 1}`}>
             <div className="grid grid-cols-[1fr_1.2fr] gap-3">
-              <Field label="Asset"><select className={inputCls} value={p.asset} onChange={(e) => setPart(i, { asset: e.target.value })} aria-label={`Part ${i + 1} asset`}>{ASSET_OPTIONS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></Field>
+              <Field label="Asset"><div className="asel"><AssetIcon a={assetFromKey(p.asset)} size={22} /><select className={inputCls + ' appearance-none pl-11'} value={p.asset} onChange={(e) => setPart(i, { asset: e.target.value })} aria-label={`Part ${i + 1} asset`}>{ASSET_GROUPS.map(([g, opts]) => <optgroup key={g} label={g}>{opts.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</optgroup>)}</select></div></Field>
               <Field label="Amount" error={pe(i, 'amount')}><input className={inputCls} inputMode="decimal" placeholder="200" value={p.amount} onChange={(e) => setPart(i, { amount: e.target.value })} aria-label={`Part ${i + 1} amount`} /></Field>
             </div>
             <label className="flex items-center gap-2 text-[14px] text-muted"><input type="checkbox" checked={p.dated} onChange={(e) => setPart(i, { dated: e.target.checked })} aria-label={`Part ${i + 1} opens on a date`} /> Opens on a date (otherwise right after they accept)</label>

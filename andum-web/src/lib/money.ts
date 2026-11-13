@@ -30,6 +30,9 @@ export function assetOf(tokenAccount: string): AssetId {
 /** AssetId 'GOLD' -> faucet/contract id 'xau'. */
 export const assetKey = (a: AssetId): string => (a === 'GOLD' ? 'xau' : a.toLowerCase())
 
+/** Faucet/contract key 'xau' / 'pltr' -> AssetId 'GOLD' / 'PLTR'. */
+export const assetFromKey = (key: string): AssetId => assetOf(key)
+
 export const unitOf = (tokenAccount: string): string => AS[assetOf(tokenAccount)].u
 
 export const maskAccount = (a: string): string => (a.length > 22 && !a.includes('.') ? `${a.slice(0, 8)}…${a.slice(-6)}` : a)

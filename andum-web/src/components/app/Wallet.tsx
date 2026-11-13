@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { apiClient } from '@/lib/api'
 import { accountUrl, DEPLOYED_ASSETS, tokenBalance } from '@/lib/chain'
 import { errorText } from '@/lib/errors'
-import { fromBase } from '@/lib/money'
+import { AssetIcon, AS } from '@/lib/assets'
+import { assetFromKey, fromBase } from '@/lib/money'
 import { Card, Notice, Spinner } from './ui'
 import { useSession } from './Session'
 
-const LABEL: Record<string, string> = { usdc: 'USDC', idrx: 'IDRX', myr: 'MYR', xau: 'Gold g', aapl: 'AAPL' }
+const LABEL: Record<string, string> = { usdc: 'USDC', idrx: 'IDRX', myr: 'MYR', xau: 'Gold g', aapl: 'AAPL', nvda: 'NVDA', pltr: 'PLTR' }
 
 export function useBalances(account: string | null) {
   const [b, setB] = useState<Record<string, string>>({})
@@ -52,11 +53,14 @@ export function WalletStrip({ balances, refresh }: { balances: Record<string, st
           <button className="btn ghost sm" onClick={() => void s.signOut()}>Sign out</button>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {DEPLOYED_ASSETS.map((a) => (
           <div key={a} className="rounded-xl border border-line bg-bg2 p-3" data-asset={a}>
-            <div className="text-[12px] text-muted">{LABEL[a]}</div>
-            <div className="num text-[18px]">{fromBase(balances[a] ?? '0')}</div>
+            <div className="flex items-center gap-2">
+              <AssetIcon a={assetFromKey(a)} size={22} />
+              <div className="min-w-0"><div className="text-[13px] leading-tight text-fg">{LABEL[a]}</div><div className="truncate text-[11px] leading-tight text-muted">{AS[assetFromKey(a)].n}</div></div>
+            </div>
+            <div className="num mt-1.5 text-[18px]">{fromBase(balances[a] ?? '0')}</div>
             <button className="mt-1.5 text-[12.5px] text-open underline-offset-2 hover:underline disabled:opacity-50" disabled={busy !== null} onClick={() => faucet(a)} aria-label={`Get test ${LABEL[a]}`}>{busy === a ? <Spinner /> : '+ test tokens'}</button>
           </div>
         ))}

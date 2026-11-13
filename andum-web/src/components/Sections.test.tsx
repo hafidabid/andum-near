@@ -15,11 +15,11 @@ import { WalletProvider } from './WalletContext'
 const wrap = (ui: React.ReactNode) => render(<MemoryRouter future={ROUTER_FUTURE}><WalletProvider>{ui}</WalletProvider></MemoryRouter>)
 
 describe('<AssetsMarquee>', () => {
-  it('shows all eleven assets, repeated once for the loop but announced once', () => {
+  it('shows all twelve assets, repeated once for the loop but announced once', () => {
     wrap(<AssetsMarquee />)
     const items = screen.getAllByRole('listitem', { hidden: true })
-    expect(items).toHaveLength(22)
-    expect(screen.getAllByRole('listitem')).toHaveLength(11)
+    expect(items).toHaveLength(24)
+    expect(screen.getAllByRole('listitem')).toHaveLength(12)
     expect(screen.getAllByText('Tokenized gold', { exact: false }).length).toBeGreaterThan(0)
   })
 })

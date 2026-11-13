@@ -8,7 +8,7 @@ export const txUrl = (hash: string): string => `${EXPLORER}/txns/${hash}`
 export const accountUrl = (id: string): string => `${EXPLORER}/address/${id}`
 
 /** Tokens deployed on testnet (deployments/near.testnet.json). */
-export const DEPLOYED_ASSETS = ['usdc', 'idrx', 'myr', 'xau', 'aapl'] as const
+export const DEPLOYED_ASSETS = ['usdc', 'idrx', 'myr', 'xau', 'aapl', 'nvda', 'pltr'] as const
 export const tokenAccount = (assetKey: string): string => `${assetKey}.${NEAR_ROOT}`
 
 export async function rpc<T = any>(method: string, params: unknown): Promise<T> {

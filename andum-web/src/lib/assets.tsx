@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 import { LOGO_PATHS } from './logoPaths'
 
-export type AssetId = 'USDC' | 'IDRX' | 'MYR' | 'SGD' | 'THB' | 'EUR' | 'JPY' | 'GOLD' | 'AAPL' | 'NVDA' | 'TSLA'
+export type AssetId = 'USDC' | 'IDRX' | 'MYR' | 'SGD' | 'THB' | 'EUR' | 'JPY' | 'GOLD' | 'AAPL' | 'NVDA' | 'PLTR' | 'TSLA'
 
-export const ASSET_IDS: AssetId[] = ['USDC', 'IDRX', 'MYR', 'SGD', 'THB', 'EUR', 'JPY', 'GOLD', 'AAPL', 'NVDA', 'TSLA']
+export const ASSET_IDS: AssetId[] = ['USDC', 'IDRX', 'MYR', 'SGD', 'THB', 'EUR', 'JPY', 'GOLD', 'AAPL', 'NVDA', 'PLTR', 'TSLA']
 
 /** u: unit shown after a number. n: full name. d: decimals shown. */
 export const AS: Record<AssetId, { u: string; n: string; d: number }> = {
@@ -17,6 +17,7 @@ export const AS: Record<AssetId, { u: string; n: string; d: number }> = {
   GOLD: { u: 'g gold', n: 'Tokenized gold', d: 2 },
   AAPL: { u: 'AAPL', n: 'Apple Inc. stock', d: 0 },
   NVDA: { u: 'NVDA', n: 'Nvidia stock', d: 0 },
+  PLTR: { u: 'PLTR', n: 'Palantir stock', d: 0 },
   TSLA: { u: 'TSLA', n: 'Tesla stock', d: 0 },
 }
 
@@ -124,6 +125,7 @@ const GLYPHS: Record<AssetId, () => ReactNode> = {
   ),
   AAPL: () => <Logo path={LOGO_PATHS.apple} color="#111" />,
   NVDA: () => <Logo path={LOGO_PATHS.nvidia} color="#76B900" />,
+  PLTR: () => <Logo path={LOGO_PATHS.palantir} color="#111" />,
   TSLA: () => <Logo path={LOGO_PATHS.tesla} color="#E31937" />,
 }
 

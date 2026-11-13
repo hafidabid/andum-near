@@ -42,9 +42,22 @@ describe('content tables', () => {
     for (const t of THEMES) expect(THEME_TINT[t.id]).toBeTruthy()
   })
   it('assets are all named', () => {
-    expect(ASSET_IDS).toHaveLength(11)
+    expect(ASSET_IDS).toHaveLength(12)
     for (const a of ASSET_IDS) expect(AS[a].n.length).toBeGreaterThan(3)
     expect(assetLabel('GOLD')).toBe('Gold')
     expect(assetLabel('USDC')).toBe('USDC')
+  })
+})
+
+describe('stocks, gold and money options', () => {
+  it('offers NVDA and PLTR next to AAPL, with a symbol and a logo each', async () => {
+    const { ASSETS, getAsset } = await import('@shared/assets')
+    const { AS, ASSET_IDS } = await import('./assets')
+    for (const id of ['aapl', 'nvda', 'pltr']) {
+      expect(getAsset(id)).toMatchObject({ kind: 'stock', decimals: 6, bridgeable: false })
+      expect(AS[id.toUpperCase() as keyof typeof AS].u).toBe(id.toUpperCase())
+    }
+    // every asset in the shared registry has a symbol and a logo on the web side
+    for (const a of ASSETS) expect(ASSET_IDS).toContain(a.id === 'xau' ? 'GOLD' : a.id.toUpperCase())
   })
 })

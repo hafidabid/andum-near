@@ -163,6 +163,55 @@ Mock tokens (6 decimals, open capped faucet; USDC, IDRX and MYR are bridgeable):
 
 Addresses are kept in [`deployments/near.testnet.json`](deployments/near.testnet.json). Contract methods and error codes are in `smart-contract-near/core/src` and `openspec/`.
 
+### Example: one package, on the chain
+
+These are real transactions from a run on NEAR testnet (package `#1` on `core.hafidbuild.testnet`). Every one was signed by the user in the browser as a delegate action, and **the relayer paid the gas**: the user's own account is the `sender`, the relayer is only the transaction signer. A sender gives a recipient 1,000 USDC in two parts: 200 USDC **right away**, and 800 USDC **on a date, once an approver agrees**.
+
+| # | Who | Contract call | What happens | Transaction |
+|---|---|---|---|---|
+| 1 | Sender | `core.create_package` | Writes the terms: two parts, the date, the approver, an invite hash and a note | [`G6UBR6…1Uqh`](https://testnet.nearblocks.io/txns/G6UBR6TuqbyZERVS432ZP43oiXzXfatArTdrcTy51Uqh) |
+| 2 | Sender | `usdc.ft_transfer_call` | Moves 200 USDC into part 0 (message names the package and part) | [`4x8x1T…XwMx`](https://testnet.nearblocks.io/txns/4x8x1TH3GxwvWfww3w9o98zT95xUk5xR1KJfd8yLXwMx) |
+| 3 | Sender | `usdc.ft_transfer_call` | Moves 800 USDC into part 1 | [`6f75fU…CLba`](https://testnet.nearblocks.io/txns/6f75fU1xfyw5X5N25yWNepeSCJqhbpqBegMYybBWCLba) |
+| 4 | Recipient | `core.accept_package` | Proves they hold the invite secret and receives the non-transferable NFT pass | [`BKCf5G…LzVT`](https://testnet.nearblocks.io/txns/BKCf5GRkvJXxo2zBjZbSavQ8ZecGzLkoLqAyk6jKLzVT) |
+| 5 | Recipient | `core.claim` (part 0) | Part 0 is open, so 200 USDC goes straight to the recipient | [`G5ZVsS…bx3N`](https://testnet.nearblocks.io/txns/G5ZVsSfULkncTNuSCbnvEo7X6KbVue4nJC7ytgjkbx3N) |
+| 6 | Approver | `core.approve_part` (part 1) | The approver agrees, which unlocks the part once the date has passed | [`HTYry2…fYF1`](https://testnet.nearblocks.io/txns/HTYry2ey38m5ZcsSh357M3yi3UDoVFacPDeeAam9fYF1) |
+| 7 | Recipient | `core.claim` (part 1) | Date passed and approved, so 800 USDC goes to the recipient | [`5p3PLR…Ms3h`](https://testnet.nearblocks.io/txns/5p3PLRNUfGkVZmRgNy14ZN5ACPN9uXfMsAd3PsCYMs3h) |
+
+What the sender signs for step 1 (`create_package` arguments; amounts are in the token's smallest unit, 6 decimals, so `200000000` is 200 USDC):
+
+```json
+{ "args": {
+    "parts": [
+      { "token": "usdc.hafidbuild.testnet", "amount": "200000000" },
+      { "token": "usdc.hafidbuild.testnet", "amount": "800000000",
+        "unlock_ns": "1794490457794141696",
+        "approvers": ["f04f458d4d4fb57dc432018f7b075015a097df5b99e6efb02f1d1651fd4d2491"] }
+    ],
+    "accept_by_ns": "1794493907794141696",
+    "invite_hash": "+k9d9u2jyBFp0qTgsNdqErv3Nast8ekTYhtgGc5qj4M=",
+    "theme": "confetti",
+    "note": "Thanks for the audit!" } }
+```
+
+Step 2 and 3 fund each part. The call goes to the token and its `msg` tells the core contract which part the money is for: `{"receiver_id":"core.hafidbuild.testnet","amount":"200000000","msg":"{\"package_id\":\"1\",\"part_id\":0}"}` (deposit: 1 yoctoNEAR, as NEP-141 requires).
+
+Anyone can read the result straight from the chain, with no account and no API:
+
+```bash
+near view core.hafidbuild.testnet get_package '{"package_id":"1"}' --networkId testnet
+```
+
+```json
+{ "id": "1", "status": "ACCEPTED", "note": "Thanks for the audit!",
+  "parts": [
+    { "part_id": 0, "amount": "200000000", "funded": "200000000", "unlock_ns": null,
+      "approvers": [], "state": "TAKEN" },
+    { "part_id": 1, "amount": "800000000", "funded": "800000000", "unlock_ns": "1794490457794141696",
+      "approvers": ["f04f458d…d2491"], "threshold": 1, "approved": true, "state": "TAKEN" } ] }
+```
+
+(Output shortened: the sender, owner and a few timestamp fields are left out.) The invite secret used in step 4 is not shown here: it is a one-time value that the receiver gets by email.
+
 ### Sepolia
 
 | Contract | Address |

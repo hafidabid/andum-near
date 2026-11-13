@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { cx } from '@/lib/format'
 import { txUrl } from '@/lib/chain'
 
@@ -8,10 +8,20 @@ export function Card({ children, className }: { children: ReactNode; className?:
 
 export const inputCls = 'w-full rounded-lg border border-line2 bg-bg2 px-3 py-2.5 text-[15px] text-fg placeholder:text-faint outline-none transition-colors focus:border-open disabled:opacity-60'
 
-/** A labelled field. `help` adds a small "?" that opens a plain-language note under the label. */
+/** A labelled field. `help` adds a small "?" that opens a plain-language note in a floating popover. */
 export function Field({ label, hint, help, error, children }: { label: string; hint?: string; help?: ReactNode; error?: string | null; children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const id = useId()
+  const box = useRef<HTMLSpanElement>(null)
+  // Close the popover on an outside click or Escape.
+  useEffect(() => {
+    if (!open) return
+    const down = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', down)
+    document.addEventListener('keydown', key)
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key) }
+  }, [open])
   // A field with a help button is a plain container: a button inside a <label> would also be "labelled" by it.
   // Every input in the app carries its own aria-label, so nothing loses its name.
   const Wrap = help ? 'div' : 'label'
@@ -19,9 +29,8 @@ export function Field({ label, hint, help, error, children }: { label: string; h
     <Wrap className="grid gap-1.5 text-left">
       <span className="flex items-center gap-2 text-[13px] font-medium leading-5 text-muted">
         {label}
-        {help && <button type="button" className="ws-hint-btn" aria-label="What does this do?" data-help={label} aria-expanded={open} aria-controls={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((o) => !o) }}>?</button>}
+        {help && <span ref={box} className="ws-hint-wrap"><button type="button" className="ws-hint-btn" aria-label="What does this do?" data-help={label} aria-expanded={open} aria-controls={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((o) => !o) }}>?</button>{open && <span id={id} role="note" className="ws-hint">{help}</span>}</span>}
       </span>
-      {help && open && <span id={id} role="note" className="ws-hint">{help}</span>}
       {children}
       {error ? <span role="alert" className="text-[13px] text-bad">{error}</span> : hint ? <span className="text-[12.5px] text-faint">{hint}</span> : null}
     </Wrap>

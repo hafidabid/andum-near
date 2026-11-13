@@ -107,7 +107,8 @@
 .ws-hint-btn{display:inline-grid;place-items:center;flex:none;width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);font-size:11px;line-height:1;font-weight:600;color:var(--muted);transition:color .15s,border-color .15s,background-color .15s}
 .ws-hint-btn:hover,.ws-hint-btn[aria-expanded=true]{color:var(--bg);background:var(--fg);border-color:var(--fg)}
 .ws-hint-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-.ws-hint{display:block;padding:10px 12px;border-radius:10px;background:var(--card2);font-size:13.5px;line-height:20px;font-weight:400;color:var(--fg)}
+.ws-hint-wrap{position:relative;display:inline-flex}
+.ws-hint{position:absolute;z-index:30;top:calc(100% + 8px);left:-8px;width:max-content;max-width:min(300px,calc(100vw - 48px));display:block;padding:10px 12px;border-radius:10px;border:1px solid var(--line2);background:var(--card2);box-shadow:0 12px 32px rgba(0,0,0,.35);text-align:left;font-size:13.5px;line-height:20px;font-weight:400;color:var(--fg)}
 /* first-run guide */
 .ws-guide{margin:0 0 var(--ws-gap);padding:24px;background:var(--card);border-radius:14px}
 .ws .ws-guide{padding:24px}

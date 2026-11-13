@@ -28,7 +28,7 @@
 .ws .ws-in:focus{border-color:var(--line2)}
 .ws .ws-in::placeholder{color:var(--faint);opacity:1}
 .ws .asel select.ws-in{padding-left:44px}
-.ws textarea.ws-in{min-height:64px;resize:vertical}
+.ws textarea.ws-in{min-height:64px;resize:vertical;font-family:inherit}
 .ws-starts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-4px 0 16px;font-size:13px;line-height:20px;color:var(--muted)}
 .ws-chip{padding:4px 12px;border-radius:999px;background:var(--card2);font-size:13px;line-height:20px;color:var(--muted);transition:color .15s,background-color .15s}
 .ws-chip:hover{color:var(--fg)}

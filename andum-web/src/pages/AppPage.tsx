@@ -37,13 +37,13 @@ export function AppPage() {
   return (
     <section className="!pt-[96px]">
       <div className="dispatch-shell mx-auto grid max-w-[760px] gap-6">
-        <WalletStrip balances={balances} refresh={refresh} />
         <div role="tablist" className="dispatch-tabs" aria-label="Package workspace">
           {TABS.map(([id, label]) => (
             <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
               className={cx('dispatch-tab', tab === id && 'is-active')}>{label}</button>
           ))}
         </div>
+        {tab === 'send' && <WalletStrip balances={balances} refresh={refresh} />}
         {tab === 'send' && <Send balances={balances} onDone={() => { setVersion((v) => v + 1); void refresh() }} />}
         {tab === 'sent' && <Sent version={version} onChange={() => void refresh()} />}
         {tab === 'approve' && <Approvals version={version} />}

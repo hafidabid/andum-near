@@ -8,6 +8,13 @@ import { Card, Field, Notice, StepList, TxLink, inputCls, type StepState } from 
 import { useSession } from './Session'
 import { assetFromKey, fromBase } from '@/lib/money'
 import { AssetIcon } from '@/lib/assets'
+import { ThemeArt } from '@/components/ThemeArt'
+
+const SEND_TEMPLATES = [
+  { id: 'gift', icon: '✳', name: 'A gift', detail: 'One part now, one on a date', parts: [{ asset: 'myr', amount: '500', dated: false }, { asset: 'myr', amount: '4500', dated: true }] },
+  { id: 'milestone', icon: '▤', name: 'Milestones', detail: 'Release each stage after approval', parts: [{ asset: 'usdc', amount: '500', dated: false }, { asset: 'usdc', amount: '1000', dated: true, approvalRequired: true }] },
+  { id: 'vesting', icon: '◷', name: 'Vesting', detail: 'Cash and shares on set dates', parts: [{ asset: 'idrx', amount: '12000000', dated: true }, { asset: 'aapl', amount: '10', dated: true }] },
+] as const
 
 /** What a sender can put in a part, grouped so money, gold and stocks are easy to tell apart. */
 const ASSET_GROUPS: Array<[string, Array<[string, string]>]> = [
@@ -36,6 +43,7 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
   const [err, setErr] = useState<string | null>(null)
   const [detail, setDetail] = useState<Record<number, string>>({})
   const [link, setLink] = useState<string | null>(null)
+  const [template, setTemplate] = useState<string | null>(null)
   const run = useRef<Run>({ funded: new Set() })
   const built = useRef<ReturnType<typeof buildDraft> & { ok: true } | null>(null)
   const busy = step >= 0 && step < STEPS.length && failed === null
@@ -105,6 +113,13 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
 
   function reset() { setD(emptyDraft()); setStep(-1); setFailed(null); setErr(null); setLink(null); setDetail({}); run.current = { funded: new Set() } }
 
+  function applyTemplate(id: string) {
+    const preset = SEND_TEMPLATES.find((x) => x.id === id)
+    if (!preset) return
+    setTemplate(id)
+    setD((current) => ({ ...current, parts: preset.parts.map((p) => ({ ...emptyPart(p.asset), ...p, threshold: '1' })) }))
+  }
+
   if (step >= 0) {
     const states: StepState[] = STEPS.map((_, i) => (failed === i ? 'fail' : i < step || step === STEPS.length ? 'done' : i === step && failed === null ? 'doing' : 'todo'))
     return (
@@ -140,6 +155,19 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
   const pe = (i: number, k: string) => problems?.parts[i]?.[k]
   return (
     <form onSubmit={submit} className="grid gap-5" noValidate aria-label="New package">
+      <section className="dispatch-templates" aria-label="Package templates">
+        <div className="flex items-end justify-between gap-3"><div><span className="mono text-[11px]">Start with a pattern</span><h2 className="mt-1 font-display text-[20px]">Package templates</h2></div><span className="text-[12px] text-muted">Preview, then apply</span></div>
+        <div className="template-grid">
+          {SEND_TEMPLATES.map((item) => <button type="button" key={item.id} aria-pressed={template === item.id} className="template-choice" onClick={() => applyTemplate(item.id)}>
+            <span className="template-mark" aria-hidden="true">{item.icon}</span><span className="min-w-0"><b>{item.name}</b><small>{item.detail}</small></span><span className="template-count">{item.parts.length} parts</span>
+          </button>)}
+        </div>
+        {template && <div className="template-preview" aria-live="polite">
+          <div className="template-preview-art"><ThemeArt theme={d.theme} className="h-10 w-10" /></div>
+          <div className="min-w-0 flex-1"><b>{SEND_TEMPLATES.find((x) => x.id === template)?.name} package preview</b><div className="template-preview-parts">{d.parts.map((p, i) => <span key={i}><AssetIcon a={assetFromKey(p.asset)} size={18} /> {p.amount || 'Amount'} {p.asset.toUpperCase()} · {p.dated ? 'Date' : 'On acceptance'}{p.approvalRequired ? ' + approval' : ''}</span>)}</div></div>
+          <button type="button" className="text-[13px] text-muted underline-offset-2 hover:underline" onClick={() => setTemplate(null)}>Clear</button>
+        </div>}
+      </section>
       <Card className="grid gap-5">
         <div className="border-b border-line pb-4"><span className="mono text-[11px]">01 · Recipient</span><h2 className="mt-1 font-display text-[22px]">Who is it for?</h2></div>
         <Field label="Recipient email" error={problems?.form.email}><input className={inputCls} type="email" value={d.email} onChange={(e) => setD({ ...d, email: e.target.value })} aria-label="Recipient email" /></Field>

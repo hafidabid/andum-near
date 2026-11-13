@@ -6,6 +6,10 @@
 #   API_DOMAIN=andum-backend.projectdeadwood.my.id WEB_DOMAIN=andum.projectdeadwood.my.id \
 #   SMTP_HOST=smtp.example.com SMTP_PORT=587 SMTP_USER=... SMTP_PASS=... EMAIL_FROM='Andum <no-reply@projectdeadwood.my.id>' \
 #   deploy/make-env.sh
+#
+# Shared server (Postgres and Redis already run for other projects, see docker-compose.shared.yml):
+#   SHARED_INFRA=1 DATABASE_HOST=host.docker.internal DATABASE_PORT=5433 REDIS_URL=redis://host.docker.internal:6379/1 deploy/make-env.sh
+# In shared mode only the NEAR keys are copied (the EVM keys and local anvil settings stay on your laptop) and the bridge is off.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -20,17 +24,23 @@ PGPW="$(prev POSTGRES_PASSWORD)";   PGPW="${PGPW:-$(openssl rand -hex 24)}"
 SESS="$(prev SESSION_SECRET)";      SESS="${SESS:-$(openssl rand -hex 32)}"
 INV="$(prev INVITE_ENC_KEY)";       INV="${INV:-$(openssl rand -base64 32)}"
 
+DB_HOST="${DATABASE_HOST:-postgres}"; DB_PORT="${DATABASE_PORT:-5432}"
+REDIS_URL_OUT="${REDIS_URL:-redis://redis:6379}"
+SHARED_INFRA="${SHARED_INFRA:-0}"
+
 TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
 {
-  grep -vE '^\s*(#|$)' "$SRC"
+  if [ "$SHARED_INFRA" = 1 ]; then grep -vE '^\s*(#|$|EVM_)' "$SRC"; else grep -vE '^\s*(#|$)' "$SRC"; fi
   echo "NODE_ENV=production"
   echo "PORT=8080"
   echo "PUBLIC_API_BASE=https://$API_DOMAIN"
   echo "PUBLIC_WEB_BASE=https://$WEB_DOMAIN"
   echo "WEB_ORIGIN=https://$WEB_DOMAIN"
   echo "POSTGRES_PASSWORD=$PGPW"
-  echo "DATABASE_URL=postgres://andum:$PGPW@postgres:5432/andum"
-  echo "REDIS_URL=redis://redis:6379"
+  echo "DATABASE_URL=postgres://andum:$PGPW@$DB_HOST:$DB_PORT/andum"
+  echo "REDIS_URL=$REDIS_URL_OUT"
+  echo "QUEUE_PREFIX=${QUEUE_PREFIX:-andum}"
+  [ "$SHARED_INFRA" = 1 ] && echo "BRIDGE_ENABLED=false"
   echo "SESSION_SECRET=$SESS"
   echo "INVITE_ENC_KEY=$INV"
   echo "AUTH_LOCAL_ENABLED=false"

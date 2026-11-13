@@ -1,0 +1,36 @@
+# Backend only (API + worker), for a server that ALREADY runs Postgres and Redis for other projects.
+# It does not start its own database or Redis: it reaches the host's published ports through host.docker.internal.
+# Use it with:  COMPOSE_FILE=deploy/docker-compose.shared.yml deploy/deploy.sh
+#
+# Isolation from the other tenants of those services (see deploy/make-env.sh, SHARED_INFRA=1):
+#   - Postgres: its own database `andum` and its own role `andum`, nothing else is touched
+#   - Redis:    its own DB index (1) and BullMQ key prefix `andum`, pub/sub channel `andum:events`
+# Only the API is reachable from the host, and only on 127.0.0.1; nginx terminates TLS in front of it.
+name: andum
+
+x-app: &app
+  build: { context: .., dockerfile: Dockerfile }
+  env_file: .env.production
+  restart: unless-stopped
+  extra_hosts: ["host.docker.internal:host-gateway"]
+  mem_limit: 320m          # the server is small and shared: keep each process bounded
+  logging: { driver: json-file, options: { max-size: "10m", max-file: "5" } }
+
+services:
+  api:
+    <<: *app
+    build: { context: .., dockerfile: Dockerfile, target: api }
+    image: andum-api:latest
+    ports: ["127.0.0.1:${API_HOST_PORT:-8090}:8080"]
+    environment: { PORT: "8080" }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  worker:
+    <<: *app
+    build: { context: .., dockerfile: Dockerfile, target: worker }
+    image: andum-worker:latest

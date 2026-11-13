@@ -8,6 +8,7 @@
 # Config: env vars or deploy/deploy.conf (gitignored), e.g.
 #   SERVER=deploy@1.2.3.4
 #   REMOTE_DIR=andum            # relative to the remote home
+#   COMPOSE_FILE=deploy/docker-compose.shared.yml   # backend only, reuse the server's Postgres and Redis
 #   API_DOMAIN=andum-backend.projectdeadwood.my.id
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -16,7 +17,8 @@ cd "$(dirname "$0")/.."
 REMOTE_DIR="${REMOTE_DIR:-andum}"
 API_DOMAIN="${API_DOMAIN:-andum-backend.projectdeadwood.my.id}"
 API_PORT="${API_HOST_PORT:-8090}"
-DC="docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml"
+COMPOSE_FILE="${COMPOSE_FILE:-deploy/docker-compose.prod.yml}"
+DC="docker compose --env-file deploy/.env.production -f $COMPOSE_FILE"
 remote() { ssh -o ServerAliveInterval=30 "$SERVER" "cd $REMOTE_DIR && $*"; }
 
 sync_code() {
@@ -24,13 +26,14 @@ sync_code() {
   rsync -az --delete --human-readable \
     --include='/package.json' --include='/package-lock.json' --include='/Dockerfile' --include='/.dockerignore' \
     --include='/shared/***' --include='/backend/***' --include='/worker/***' \
-    --include='/deploy/' --include='/deploy/docker-compose.prod.yml' \
+    --include='/deploy/' --include='/deploy/docker-compose.prod.yml' --include='/deploy/docker-compose.shared.yml' \
     --exclude='node_modules' --exclude='dist' --exclude='*' \
     ./ "$SERVER:$REMOTE_DIR/"
 }
 push_env() {
   [ -f deploy/.env.production ] || { echo "run deploy/make-env.sh first"; exit 1; }
-  rsync -a --chmod=600 deploy/.env.production "$SERVER:$REMOTE_DIR/deploy/.env.production"
+  # created with umask 077 so it is never readable by others, not even briefly (macOS rsync has no --chmod)
+  ssh "$SERVER" "umask 077; cat > $REMOTE_DIR/deploy/.env.production" < deploy/.env.production
 }
 wait_healthy() {
   echo "waiting for the API..."
@@ -60,6 +63,7 @@ case "$cmd" in
   restart)  remote "$DC restart ${*:-api worker}" ;;
   down)     remote "$DC down" ;;   # volumes (database) are kept
   backup)
+    case "$COMPOSE_FILE" in *shared*) echo "shared-infra mode has no postgres service here: dump the 'andum' database from the existing Postgres instead"; exit 1;; esac
     f="andum-$(date +%Y%m%d-%H%M%S).sql.gz"
     remote "mkdir -p backups && $DC exec -T postgres pg_dump -U andum andum | gzip > backups/$f"
     scp -q "$SERVER:$REMOTE_DIR/backups/$f" "./$f" && echo "saved ./$f (also on the server in $REMOTE_DIR/backups)"

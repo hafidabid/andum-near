@@ -18,7 +18,13 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["node", "vite/client", "vitest/globals", "@testing-library/jest-dom"],
     "baseUrl": ".",
-    "paths": { "@/*": ["src/*"], "@shared/*": ["../shared/src/*"] }
+    "paths": {
+      "@/*": ["src/*"],
+      "@shared/*": ["../shared/src/*"],
+      "@noble/curves/ed25519": ["./node_modules/@noble/curves/ed25519.d.ts"],
+      "@noble/hashes/sha256": ["./node_modules/@noble/hashes/sha256.d.ts"],
+      "bs58": ["./node_modules/bs58"]
+    }
   },
   "include": ["src"]
 }

@@ -1,6 +1,6 @@
 # Andum
 
-**Send money and assets in one package.** Each part of a package opens on its own rule: right away, on a date, or on a date plus the approval of 1 to 5 people. The recipient holds the package as a non-transferable NFT pass, can see the funds before accepting, and nobody pays gas.
+**Programmable gifts, payments, rewards and surprises.** Send money, gold or stocks to someone who matters to you, in one package. Each part of a package opens on its own rule: right away, on a date, or on a date plus the approval of 1 to 5 people. The recipient holds the package as a non-transferable NFT pass, can see the funds before accepting, and nobody pays gas.
 
 ![Landing page](docs/media/web-landing-top.png)
 

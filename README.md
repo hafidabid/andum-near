@@ -151,7 +151,7 @@ cd smart-contract-evm && forge test                              # 38 tests
 | bridgeworker | [`bridgeworker.hafidbuild.testnet`](https://testnet.nearblocks.io/address/bridgeworker.hafidbuild.testnet) | Account the bridge worker signs `bridge_in` with |
 | admin | [`admin.hafidbuild.testnet`](https://testnet.nearblocks.io/address/admin.hafidbuild.testnet) | Contract owner (pause, config). Holds no user funds |
 
-Mock tokens (6 decimals, open capped faucet; USDC, IDRX and MYR are bridgeable):
+Mock tokens: money (USDC, IDRX, MYR), gold (XAU) and tokenized stocks (AAPL, NVDA, PLTR). All have 6 decimals and an open, capped faucet; only USDC, IDRX and MYR are bridgeable. The web app shows each with its symbol and logo.
 
 | Token | Account |
 |---|---|
@@ -160,6 +160,8 @@ Mock tokens (6 decimals, open capped faucet; USDC, IDRX and MYR are bridgeable):
 | MYR | [`myr.hafidbuild.testnet`](https://testnet.nearblocks.io/address/myr.hafidbuild.testnet) |
 | XAU | [`xau.hafidbuild.testnet`](https://testnet.nearblocks.io/address/xau.hafidbuild.testnet) |
 | AAPL | [`aapl.hafidbuild.testnet`](https://testnet.nearblocks.io/address/aapl.hafidbuild.testnet) |
+| NVDA | [`nvda.hafidbuild.testnet`](https://testnet.nearblocks.io/address/nvda.hafidbuild.testnet) |
+| PLTR | [`pltr.hafidbuild.testnet`](https://testnet.nearblocks.io/address/pltr.hafidbuild.testnet) |
 
 Addresses are kept in [`deployments/near.testnet.json`](deployments/near.testnet.json). Contract methods and error codes are in `smart-contract-near/core/src` and `openspec/`.
 

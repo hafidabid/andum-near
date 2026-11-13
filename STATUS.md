@@ -2,7 +2,7 @@
 
 Last updated: 13 Nov 2026 (session 2: web app integration). Legend: DONE = built and tested locally. PARTIAL = built, not validated against a live network. TODO = not started. HUMAN = needs a person (keys, funds, accounts).
 
-**Deployed and exercised live (12 Nov 2026):** NEAR testnet under `hafidbuild.testnet` (core, bridge, 5 mock tokens: usdc idrx myr xau aapl) and EVM contracts on Sepolia (see `deployments/*.json`). The full user journey ran through the real API + worker + relayer against NEAR testnet (`scripts/live/live-e2e.mjs`, 16/16 checks), and the bridge ran NEAR testnet <-> local anvil and NEAR testnet <-> Sepolia (`scripts/live/live-bridge.mjs`, 9/9 each). Email is simulated with Mailpit (Docker). Base Sepolia is NOT deployed (the deployer has no Base Sepolia ETH).
+**Deployed and exercised live (12 Nov 2026):** NEAR testnet under `hafidbuild.testnet` (core, bridge, 7 mock tokens: usdc idrx myr xau aapl nvda pltr) and EVM contracts on Sepolia (see `deployments/*.json`). The full user journey ran through the real API + worker + relayer against NEAR testnet (`scripts/live/live-e2e.mjs`, 16/16 checks), and the bridge ran NEAR testnet <-> local anvil and NEAR testnet <-> Sepolia (`scripts/live/live-bridge.mjs`, 9/9 each). Email is simulated with Mailpit (Docker). Base Sepolia is NOT deployed (the deployer has no Base Sepolia ETH).
 
 Everything else is verified with unit tests, local Postgres and Redis, an in-memory chain model and the NEAR sandbox.
 

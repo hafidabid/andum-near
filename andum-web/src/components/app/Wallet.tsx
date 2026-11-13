@@ -22,13 +22,14 @@ export function useBalances(account: string | null) {
 }
 
 /** Who is signed in: the account on NEAR, a copy action and sign out. Sits at the right of the title row. */
-export function AccountBar() {
+export function AccountBar({ onGuide }: { onGuide?: () => void }) {
   const s = useSession()
   const [copied, setCopied] = useState(false)
   return (
     <div className="ws-acct">
       <a href={accountUrl(s.accountId!)} target="_blank" rel="noreferrer" data-testid="account-id" title={s.email ?? undefined}>{s.accountId}</a>
       <button className="ws-act" onClick={() => { void navigator.clipboard?.writeText(s.accountId!); setCopied(true); setTimeout(() => setCopied(false), 1500) }}>{copied ? 'Copied' : 'Copy'}</button>
+      {onGuide && <button className="ws-act" onClick={onGuide}>Guide</button>}
       <button className="ws-act" onClick={() => void s.signOut()}>Sign out</button>
     </div>
   )

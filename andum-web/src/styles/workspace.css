@@ -1,6 +1,6 @@
 /* The signed-in workspace (sender, sent, approvals). One ground, surfaces separated by a step in tone,
    one white action. Grid: form 1fr + 340px rail + 24px gap; the whole shell is 1120px. */
-.ws{--ws-gap:24px;margin:0 auto;max-width:1180px;font-variant-numeric:tabular-nums}
+.ws{--ws-gap:24px;--muted:#B4BECE;--faint:#94A0B4;margin:0 auto;max-width:1180px;font-variant-numeric:tabular-nums}
 .ws--narrow{max-width:760px}
 .ws-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px var(--ws-gap);margin-bottom:20px}
 .ws-title{min-width:0}
@@ -26,6 +26,7 @@
 .ws-two{display:grid;gap:16px;align-items:start;grid-template-columns:repeat(2,minmax(0,1fr))}
 .ws input.ws-in,.ws select.ws-in,.ws textarea.ws-in{background:var(--bg2);border-color:transparent;border-radius:10px;padding:10px 12px;font-size:15px;line-height:20px}
 .ws .ws-in:focus{border-color:var(--line2)}
+.ws .ws-in::placeholder{color:var(--faint);opacity:1}
 .ws .asel select.ws-in{padding-left:44px}
 .ws textarea.ws-in{min-height:64px;resize:vertical}
 .ws-starts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-4px 0 16px;font-size:13px;line-height:20px;color:var(--muted)}
@@ -101,3 +102,30 @@
   .ws-acct a{max-width:150px}
 }
 @media (prefers-reduced-motion:reduce){.ws-send,.ws-chip,.ws-tab,.ws-check input{transition:none}}
+
+/* hints: a small ? beside a label opens a plain-language note */
+.ws-hint-btn{display:inline-grid;place-items:center;flex:none;width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);font-size:11px;line-height:1;font-weight:600;color:var(--muted);transition:color .15s,border-color .15s,background-color .15s}
+.ws-hint-btn:hover,.ws-hint-btn[aria-expanded=true]{color:var(--bg);background:var(--fg);border-color:var(--fg)}
+.ws-hint-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.ws-hint{display:block;padding:10px 12px;border-radius:10px;background:var(--card2);font-size:13.5px;line-height:20px;font-weight:400;color:var(--fg)}
+/* first-run guide */
+.ws-guide{margin:0 0 var(--ws-gap);padding:24px;background:var(--card);border-radius:14px}
+.ws .ws-guide{padding:24px}
+.ws-guide-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px}
+.ws-guide-head h2{margin:0;font:500 16px/24px var(--font-body);color:var(--fg)}
+.ws-guide-steps{display:grid;gap:var(--ws-gap);grid-template-columns:repeat(3,minmax(0,1fr))}
+.ws-guide-steps b{display:block;font-size:14px;line-height:20px;font-weight:500;color:var(--fg)}
+.ws-guide-steps p{margin:4px 0 0;font-size:13.5px;line-height:20px;color:var(--muted)}
+.ws-guide-foot{margin:16px 0 0;font-size:13.5px;line-height:20px;color:var(--muted)}
+.ws-guide-foot b{font-weight:500;color:var(--fg)}
+.ws-guide-foot .ws-hint-btn{vertical-align:-4px}
+/* withdraw */
+.ws-inline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+.ws-facts{display:grid;gap:0;margin:0 0 16px}
+.ws-facts>div{display:flex;justify-content:space-between;gap:16px;padding:10px 0;font-size:14px;line-height:20px}
+.ws-facts>div+div{border-top:1px solid var(--line)}
+.ws-facts dt{color:var(--muted)}
+.ws-facts dd{margin:0;min-width:0;color:var(--fg);text-align:right;overflow-wrap:anywhere}
+.ws-note{margin:0 0 16px;font-size:13px;line-height:19px;color:var(--muted)}
+@media (max-width:959px){.ws-guide-steps{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.ws-hint-btn{transition:none}}

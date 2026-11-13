@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import { cx } from '@/lib/format'
 import { txUrl } from '@/lib/chain'
 
@@ -8,13 +8,23 @@ export function Card({ children, className }: { children: ReactNode; className?:
 
 export const inputCls = 'w-full rounded-lg border border-line2 bg-bg2 px-3 py-2.5 text-[15px] text-fg placeholder:text-faint outline-none transition-colors focus:border-open disabled:opacity-60'
 
-export function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string | null; children: ReactNode }) {
+/** A labelled field. `help` adds a small "?" that opens a plain-language note under the label. */
+export function Field({ label, hint, help, error, children }: { label: string; hint?: string; help?: ReactNode; error?: string | null; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const id = useId()
+  // A field with a help button is a plain container: a button inside a <label> would also be "labelled" by it.
+  // Every input in the app carries its own aria-label, so nothing loses its name.
+  const Wrap = help ? 'div' : 'label'
   return (
-    <label className="grid gap-1.5 text-left">
-      <span className="text-[13px] font-medium leading-5 text-muted">{label}</span>
+    <Wrap className="grid gap-1.5 text-left">
+      <span className="flex items-center gap-2 text-[13px] font-medium leading-5 text-muted">
+        {label}
+        {help && <button type="button" className="ws-hint-btn" aria-label="What does this do?" data-help={label} aria-expanded={open} aria-controls={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((o) => !o) }}>?</button>}
+      </span>
+      {help && open && <span id={id} role="note" className="ws-hint">{help}</span>}
       {children}
       {error ? <span role="alert" className="text-[13px] text-bad">{error}</span> : hint ? <span className="text-[12.5px] text-faint">{hint}</span> : null}
-    </label>
+    </Wrap>
   )
 }
 

@@ -21,7 +21,7 @@ const STARTS: Array<{ id: string; name: string; rules: Array<{ dated: boolean; a
 const DRAFT_KEY = 'andum.package-draft.v1'
 
 /** What a sender can put in a part, grouped so money, gold and stocks are easy to tell apart. */
-const ASSET_GROUPS: Array<[string, Array<[string, string]>]> = [
+export const ASSET_GROUPS: Array<[string, Array<[string, string]>]> = [
   ['Money', [['usdc', 'USDC · US dollar'], ['idrx', 'IDRX · Indonesian rupiah'], ['myr', 'MYR · Malaysian ringgit']]],
   ['Gold', [['xau', 'Gold (g) · tokenized gold']]],
   ['Stocks', [['aapl', 'AAPL · Apple'], ['nvda', 'NVDA · Nvidia'], ['pltr', 'PLTR · Palantir']]],
@@ -194,7 +194,7 @@ export function Send({ balances, onDone, rail }: { balances: Record<string, stri
         <section className="ws-section" aria-label="Recipient">
           <h2 className="ws-h">Who is it for?</h2>
           <div className="ws-fields">
-            <Field label="Recipient email" error={problems?.form.email}><input className={inputCls + ' ws-in'} type="email" autoComplete="off" placeholder="Their email address" value={d.email} onChange={(e) => setD({ ...d, email: e.target.value })} aria-label="Recipient email" /></Field>
+            <Field label="Recipient email" error={problems?.form.email} help="Andum emails this person a link. They can see what is inside before they accept, and they do not need a crypto wallet."><input className={inputCls + ' ws-in'} type="email" autoComplete="off" placeholder="Their email address" value={d.email} onChange={(e) => setD({ ...d, email: e.target.value })} aria-label="Recipient email" /></Field>
           </div>
         </section>
 
@@ -215,11 +215,11 @@ export function Send({ balances, onDone, rail }: { balances: Record<string, stri
               <label className="ws-check"><input type="checkbox" checked={p.dated} onChange={(e) => { setTemplate(null); setPart(i, { dated: e.target.checked, approvalRequired: e.target.checked ? p.approvalRequired : false, approvers: e.target.checked ? p.approvers : '' }) }} aria-label={`Part ${i + 1} opens on a date`} /><span><b>Release on a date</b><small>Otherwise it opens as soon as they accept.</small></span></label>
               {p.dated && (
                 <>
-                  <Field label="Opens at" error={pe(i, 'date')}><input className={inputCls + ' ws-in'} type="datetime-local" value={p.date} onChange={(e) => setPart(i, { date: e.target.value })} aria-label={`Part ${i + 1} date`} /></Field>
+                  <Field label="Opens at" help="Until this date and time the part stays locked. The recipient can already see it, but cannot take it." error={pe(i, 'date')}><input className={inputCls + ' ws-in'} type="datetime-local" value={p.date} onChange={(e) => setPart(i, { date: e.target.value })} aria-label={`Part ${i + 1} date`} /></Field>
                   <label className="ws-check"><input type="checkbox" checked={p.approvalRequired} onChange={(e) => { setTemplate(null); setPart(i, { approvalRequired: e.target.checked, approvers: e.target.checked ? p.approvers : '' }) }} aria-label={`Part ${i + 1} requires approval`} /><span><b>Require approval before release</b><small>Approvers confirm after the date arrives.</small></span></label>
                   {p.approvalRequired && <div className="ws-two">
-                    <Field label="Approvers" error={pe(i, 'approvers')} hint="NEAR accounts, separated by commas"><input className={inputCls + ' ws-in'} placeholder="account1, account2" value={p.approvers} onChange={(e) => setPart(i, { approvers: e.target.value })} aria-label={`Part ${i + 1} approvers`} /></Field>
-                    <Field label="Approvals needed" error={pe(i, 'threshold')}><input className={inputCls + ' ws-in'} inputMode="numeric" value={p.threshold} onChange={(e) => setPart(i, { threshold: e.target.value })} aria-label={`Part ${i + 1} approvals needed`} /></Field>
+                    <Field label="Approvers" help="People who must say yes before the part opens. Add their NEAR account, which they can copy from the top of their own Andum app. Up to 5." error={pe(i, 'approvers')} hint="NEAR accounts, separated by commas"><input className={inputCls + ' ws-in'} placeholder="account1, account2" value={p.approvers} onChange={(e) => setPart(i, { approvers: e.target.value })} aria-label={`Part ${i + 1} approvers`} /></Field>
+                    <Field label="Approvals needed" help="How many of the approvers must confirm. For example 1 means any one of them is enough." error={pe(i, 'threshold')}><input className={inputCls + ' ws-in'} inputMode="numeric" value={p.threshold} onChange={(e) => setPart(i, { threshold: e.target.value })} aria-label={`Part ${i + 1} approvals needed`} /></Field>
                   </div>}
                 </>
               )}
@@ -235,12 +235,12 @@ export function Send({ balances, onDone, rail }: { balances: Record<string, stri
           <div className="ws-fields">
             <div className="ws-two">
               <Field label="Title (optional)" error={problems?.form.title}><input className={inputCls + ' ws-in'} placeholder="Your audit bonus" value={d.title} onChange={(e) => setD({ ...d, title: e.target.value })} aria-label="Title" /></Field>
-              <Field label="Link name (optional)" error={problems?.form.slug} hint="andum link: /p/your-name"><input className={inputCls + ' ws-in'} placeholder="rina-audit-bonus" value={d.slug} onChange={(e) => setD({ ...d, slug: e.target.value.toLowerCase() })} aria-label="Link name" /></Field>
+              <Field label="Link name (optional)" error={problems?.form.slug} hint="andum link: /p/your-name" help="A short, readable name for the link you send, like /p/rina-audit-bonus. Leave it empty and Andum makes one."><input className={inputCls + ' ws-in'} placeholder="rina-audit-bonus" value={d.slug} onChange={(e) => setD({ ...d, slug: e.target.value.toLowerCase() })} aria-label="Link name" /></Field>
             </div>
-            <Field label="Note (shown after they accept)" error={problems?.form.note} hint={`${d.note.length}/${MAX_NOTE}`}><textarea className={inputCls + ' ws-in'} rows={2} value={d.note} onChange={(e) => setD({ ...d, note: e.target.value })} aria-label="Note" /></Field>
+            <Field label="Note (shown after they accept)" help="A personal message. The recipient reads it after they accept the package." error={problems?.form.note} hint={`${d.note.length}/${MAX_NOTE}`}><textarea className={inputCls + ' ws-in'} rows={2} value={d.note} onChange={(e) => setD({ ...d, note: e.target.value })} aria-label="Note" /></Field>
             <div className="ws-two">
-              <Field label="Opening moment"><select className={inputCls + ' ws-in'} value={d.theme} onChange={(e) => setD({ ...d, theme: e.target.value as ThemeId })} aria-label="Theme">{THEMES.map((t) => <option key={t.id} value={t.id}>{t.n}</option>)}</select></Field>
-              <Field label="They must accept within (hours)" error={problems?.form.acceptHours}><input className={inputCls + ' ws-in'} inputMode="numeric" value={d.acceptHours} onChange={(e) => setD({ ...d, acceptHours: e.target.value })} aria-label="Accept within hours" /></Field>
+              <Field label="Opening moment" help="The little animation the recipient sees when they open the package. It changes the look only, not the rules."><select className={inputCls + ' ws-in'} value={d.theme} onChange={(e) => setD({ ...d, theme: e.target.value as ThemeId })} aria-label="Theme">{THEMES.map((t) => <option key={t.id} value={t.id}>{t.n}</option>)}</select></Field>
+              <Field label="They must accept within (hours)" help="If they have not accepted by then, you can take everything back from the Sent tab. Up to 720 hours (30 days)." error={problems?.form.acceptHours}><input className={inputCls + ' ws-in'} inputMode="numeric" value={d.acceptHours} onChange={(e) => setD({ ...d, acceptHours: e.target.value })} aria-label="Accept within hours" /></Field>
             </div>
           </div>
         </section>

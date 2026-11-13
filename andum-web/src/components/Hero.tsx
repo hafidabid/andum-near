@@ -10,21 +10,26 @@ import { LockIcon, PauseIcon, PlayIcon } from './Icons'
 import { SectionLink } from './TopBar'
 import { useWallet } from './WalletContext'
 
-const HEADLINE = ['Pay in parts.', 'The money is already there.']
+export const HEADLINE_WORDS = ['gifts', 'payments', 'rewards', 'surprises']
+const HEADLINE_EVERY_MS = 2600
 
-function Headline() {
-  let i = 0
+/** "Programmable <word>." where the word rotates. Reduced motion keeps the first word. */
+function Headline({ reduce }: { reduce: boolean }) {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    if (reduce) return
+    const t = setInterval(() => setN((x) => (x + 1) % HEADLINE_WORDS.length), HEADLINE_EVERY_MS)
+    return () => clearInterval(t)
+  }, [reduce])
+  const word = HEADLINE_WORDS[reduce ? 0 : n]
   return (
     <h1 id="h1">
-      {HEADLINE.map((line) => (
-        <span className="ln" key={line}>
-          {line.split(' ').map((w) => (
-            <span className="w" key={`${w}-${i}`} style={{ ['--i' as string]: i++ }}>
-              {w}&nbsp;
-            </span>
-          ))}
-        </span>
-      ))}
+      <span className="ln">
+        <span className="w" style={{ ['--i' as string]: 0 }}>Programmable&nbsp;</span>
+      </span>
+      <span className="ln">
+        <span className="w" key={word} style={{ ['--i' as string]: 1 }}>{word}.</span>
+      </span>
     </h1>
   )
 }
@@ -102,9 +107,9 @@ export function Hero() {
     <header className="hero">
       <div>
         <div className="mono">Andum · Packages for money and assets</div>
-        <Headline />
+        <Headline reduce={reduce} />
         <p className="sub">
-          Put stablecoins, tokenized gold or stocks into one package. Choose when each part opens: right away, on a date, or on a date plus your approval. The person receiving it can see the funds as soon as they open the link.
+          Send money, gold or stocks to someone you love, work with, or who means a lot to you. Split it into parts and choose when each part opens: right away, on a date, or on a date plus your approval.
         </p>
         <div className="cta">
           <button className="btn" onClick={open}>

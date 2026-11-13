@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { ROUTER_FUTURE } from '@/routerFuture'
-import { describe, expect, it } from 'vitest'
-import { Hero } from './Hero'
+import { describe, expect, it, vi } from 'vitest'
+import { HEADLINE_WORDS, Hero } from './Hero'
 import { WalletProvider } from './WalletContext'
 
 const setup = () =>
@@ -19,8 +19,32 @@ describe('<Hero>', () => {
   it('has one h1 with the promise', () => {
     setup()
     const h1 = screen.getByRole('heading', { level: 1 })
-    expect(h1).toHaveTextContent('Pay in parts.')
-    expect(h1).toHaveTextContent('The money is already there.')
+    expect(h1).toHaveTextContent('Programmable gifts.')
+  })
+
+  it('rotates through the four words, and holds still with reduced motion', () => {
+    expect(HEADLINE_WORDS).toEqual(['gifts', 'payments', 'rewards', 'surprises'])
+    const real = window.matchMedia
+    vi.useFakeTimers()
+    try {
+      // reduced motion (the test default): the first word never changes
+      const still = setup()
+      act(() => { vi.advanceTimersByTime(10_000) })
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Programmable gifts.')
+      still.unmount()
+      // motion allowed: one word every 2.6 s, then back to the first
+      window.matchMedia = ((q: string) => ({ ...real(q), matches: false })) as typeof window.matchMedia
+      setup()
+      const h1 = screen.getByRole('heading', { level: 1 })
+      expect(h1).toHaveTextContent('Programmable gifts.')
+      for (const w of ['payments', 'rewards', 'surprises', 'gifts']) {
+        act(() => { vi.advanceTimersByTime(2600) })
+        expect(h1).toHaveTextContent(`Programmable ${w}.`)
+      }
+    } finally {
+      window.matchMedia = real
+      vi.useRealTimers()
+    }
   })
 
   it('shows the three parts, only the first one open at the start', () => {

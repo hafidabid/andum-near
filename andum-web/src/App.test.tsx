@@ -30,7 +30,7 @@ beforeEach(() => {
 describe('routing', () => {
   it('/ shows the landing page', () => {
     renderAt('/')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Pay in parts.')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Programmable gifts.')
     expect(screen.getByRole('heading', { name: 'Frequently asked questions' })).toBeInTheDocument()
     expect(document.title).toBe(DEFAULT_TITLE)
   })
@@ -38,7 +38,7 @@ describe('routing', () => {
   it('/p alone goes home', () => {
     renderAt('/p')
     expect(where()).toBe('/')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Pay in parts.')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Programmable gifts.')
   })
 
   it('anything else is a 404 with a way back', async () => {
@@ -48,7 +48,7 @@ describe('routing', () => {
     expect(document.title).toBe('Page not found · Andum')
     await user.click(screen.getByRole('link', { name: 'Back to home' }))
     expect(where()).toBe('/')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Pay in parts.')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Programmable gifts.')
   })
 })
 
@@ -87,7 +87,7 @@ describe('navigation', () => {
     renderAt('/nope')
     await user.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'How it works' }))
     expect(where()).toBe('/#how')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Pay in parts.')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Programmable gifts.')
     await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled())
     expect((vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1) as HTMLElement).id).toBe('how')
   })
@@ -101,7 +101,7 @@ describe('navigation', () => {
   it('a hash that matches nothing does not crash', async () => {
     renderAt('/#no-such-section')
     await new Promise((r) => setTimeout(r, 30))
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Pay in parts.')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Programmable gifts.')
   })
 
   it('the brand link goes home and back to the top', async () => {

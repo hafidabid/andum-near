@@ -127,4 +127,44 @@ describe('relayer policy: denials', () => {
     expect(decide(d, s, cfg)).toEqual(decide(d, s, cfg));
     expect(JSON.stringify(s, (_, v) => (typeof v === 'bigint' ? v.toString() : v))).toBe(snapshot);
   });
+
+  describe('withdrawals to another wallet', () => {
+    const xfer = (over: Record<string, unknown> = {}, o: { deposit?: bigint; gas?: bigint } = {}) =>
+      mk({ receiver: 'usdc.r.testnet', method: 'ft_transfer', deposit: o.deposit ?? 1n, gas: o.gas ?? 30n * T, args: { receiver_id: 'alice.testnet', amount: '2500000', ...over } })
+    it('allows a transfer to a named or an implicit account, with or without a memo', () => {
+      expect(decide(xfer(), state(), cfg).allow).toBe(true)
+      expect(decide(xfer({ receiver_id: 'a'.repeat(64), memo: 'rent' }), state(), cfg).allow).toBe(true)
+    })
+    it('needs exactly 1 yoctoNEAR and no more than 30 Tgas', () => {
+      denied(xfer({}, { deposit: 0n }), state(), 'R6')
+      denied(xfer({}, { deposit: 2n }), state(), 'R6')
+      denied(xfer({}, { gas: 31n * T }), state(), 'R7')
+    })
+    it.each([
+      ['yourself', () => ({ receiver_id: kp.accountId })],
+      ['the core contract', () => ({ receiver_id: cfg.core })],
+      ['the bridge', () => ({ receiver_id: cfg.bridge })],
+      ['a token contract', () => ({ receiver_id: 'usdc.r.testnet' })],
+      ['a malformed address', () => ({ receiver_id: 'Not An Account' })],
+      ['an address with a stray dot', () => ({ receiver_id: 'alice..testnet' })],
+      ['a zero amount', () => ({ amount: '0' })],
+      ['a negative or decimal amount', () => ({ amount: '-5' })],
+      ['a non-string amount', () => ({ amount: 5 })],
+      ['a long memo', () => ({ memo: 'x'.repeat(101) })],
+      ['an extra argument', () => ({ msg: 'hi' })],
+    ])('refuses %s', (_n, over) => { denied(xfer(over()), state(), 'R8') })
+    it('only lets a sender register an address, with the exact NEP-145 deposit', () => {
+      const reg = (args: Record<string, unknown>, deposit = 1_250_000_000_000_000_000_000n) => mk({ receiver: 'usdc.r.testnet', method: 'storage_deposit', deposit, gas: 30n * T, args })
+      expect(decide(reg({ account_id: 'alice.testnet', registration_only: true }), state(), cfg).allow).toBe(true)
+      denied(reg({ account_id: 'alice.testnet', registration_only: true }, 1n), state(), 'R6')
+      denied(reg({ account_id: 'alice.testnet', registration_only: true }, 2_000_000_000_000_000_000_000n), state(), 'R6')
+      denied(reg({ account_id: 'alice.testnet' }), state(), 'R8')
+      denied(reg({ account_id: 'alice.testnet', registration_only: false }), state(), 'R8')
+      denied(reg({ account_id: 'BAD ID', registration_only: true }), state(), 'R8')
+      denied(reg({ account_id: 'alice.testnet', registration_only: true, extra: 1 }), state(), 'R8')
+    })
+    it('is only available on token contracts, never on the core contract', () => {
+      denied(mk({ receiver: cfg.core, method: 'ft_transfer', deposit: 1n, gas: 30n * T, args: { receiver_id: 'alice.testnet', amount: '1' } }), state(), 'R5')
+    })
+  })
 });

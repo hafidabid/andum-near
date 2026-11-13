@@ -36,7 +36,12 @@ export const TGAS = 10n ** 12n;
 export const CORE_METHODS: Record<string, bigint> = {
   create_package: 30n * TGAS, accept_package: 150n * TGAS, approve_part: 30n * TGAS, claim: 120n * TGAS, reclaim_unaccepted: 150n * TGAS,
 };
-export const TOKEN_METHODS: Record<string, bigint> = { ft_mint: 30n * TGAS, ft_transfer_call: 80n * TGAS };
+export const TOKEN_METHODS: Record<string, bigint> = { ft_mint: 30n * TGAS, ft_transfer_call: 80n * TGAS, ft_transfer: 30n * TGAS, storage_deposit: 30n * TGAS };
+/** NEP-145 minimum to register one account with a token, paid by the sender from their own NEAR. */
+export const STORAGE_DEPOSIT_YOCTO = 1_250_000_000_000_000_000_000n;
+/** A NEAR account id: named (a.b.testnet) or implicit (64 hex). */
+export const NEAR_ACCOUNT_ID = /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;
+export const isNearAccountId = (v: unknown): v is string => typeof v === 'string' && v.length >= 2 && v.length <= 64 && NEAR_ACCOUNT_ID.test(v);
 
 const DIGITS = /^\d+$/;
 const deny = (rule: Rule, message: string): Decision => ({ allow: false, rule, message });
@@ -87,6 +92,24 @@ function checkArgs(d: DecodedDelegate, a: FunctionCallAction, cfg: PolicyConfig)
     } else if (typeof msg['dest_chain'] !== 'string' || typeof msg['dest_address'] !== 'string') return 'bridge msg needs dest_chain and dest_address';
     return null;
   }
+  if (a.methodName === 'ft_transfer') {
+    // a withdrawal to another wallet. Never to Andum's own contracts or a token contract (those would swallow the tokens), never to yourself.
+    if (Object.keys(args).some((k) => !['receiver_id', 'amount', 'memo'].includes(k))) return 'ft_transfer takes receiver_id, amount and an optional memo';
+    const rcv = args['receiver_id'];
+    if (!isNearAccountId(rcv)) return 'receiver_id must be a NEAR account id';
+    if (rcv === d.senderId) return 'receiver_id must not be the sender';
+    if (rcv === cfg.core || rcv === cfg.bridge || cfg.tokens.includes(rcv)) return 'receiver_id must not be an Andum contract';
+    if (typeof args['amount'] !== 'string' || !DIGITS.test(args['amount'] as string) || BigInt(args['amount'] as string) === 0n) return 'amount must be a positive decimal string';
+    if (args['memo'] !== undefined && (typeof args['memo'] !== 'string' || (args['memo'] as string).length > 100)) return 'memo must be text of 100 characters or fewer';
+    return null;
+  }
+  if (a.methodName === 'storage_deposit') {
+    // registering a receiving address with this token, nothing else
+    if (Object.keys(args).some((k) => !['account_id', 'registration_only'].includes(k))) return 'storage_deposit takes account_id and registration_only';
+    if (!isNearAccountId(args['account_id'])) return 'account_id must be a NEAR account id';
+    if (args['registration_only'] !== true) return 'registration_only must be true';
+    return null;
+  }
   return 'unknown token method';
 }
 
@@ -113,7 +136,7 @@ export function decide(d: DecodedDelegate, s: PolicyState, cfg: PolicyConfig): D
   if (!isCore && !isToken) return deny('R5', 'receiver is not allowlisted');
   if (gasCap === undefined) return deny('R5', 'method is not allowlisted for this receiver');
   // R6 deposit
-  const wantDeposit = isToken && a.methodName === 'ft_transfer_call' ? 1n : 0n;
+  const wantDeposit = isToken ? (a.methodName === 'ft_transfer_call' || a.methodName === 'ft_transfer' ? 1n : a.methodName === 'storage_deposit' ? STORAGE_DEPOSIT_YOCTO : 0n) : 0n;
   if (a.deposit !== wantDeposit) return deny('R6', `deposit must be ${wantDeposit} yoctoNEAR`);
   // R7 gas
   if (a.gas > gasCap) return deny('R7', 'attached gas exceeds the cap for this method');

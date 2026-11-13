@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+.git
+smart-contract-*
+andum-web
+docs
+deployments
+scripts
+secret
+dump.rdb
+deploy/.env.production

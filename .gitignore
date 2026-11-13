@@ -17,3 +17,8 @@ deployments/*.state.json
 dump.rdb
 scripts/report/node_modules/
 docs/report
+
+# deploy
+deploy/.env.production
+deploy/deploy.conf
+*.sql.gz

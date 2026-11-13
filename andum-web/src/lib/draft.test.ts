@@ -26,6 +26,7 @@ describe('buildDraft: positive', () => {
     const p = r.built.args.parts[0]
     expect(p.approvers).toEqual(['a.testnet', 'b.testnet']); expect(p.approval_threshold).toBe(2); expect(p.unlock_ns).toBe((BigInt(Date.parse(iso(when))) * 1_000_000n).toString())
   })
+  it('accepts a note of exactly 140 characters, the contract limit', () => { expect(buildDraft(good({ note: 'x'.repeat(140) }), NOW).ok).toBe(true) })
   it('accepts eight parts', () => { expect(buildDraft(good({ parts: Array.from({ length: 8 }, () => ({ ...emptyPart(), amount: '1' })) }), NOW).ok).toBe(true) })
   it('accepts a 64-hex implicit approver', () => {
     const d = good({ parts: [{ ...emptyPart(), amount: '1', dated: true, date: iso(NOW + 864e5), approvers: 'ab'.repeat(32), threshold: '1' }] })
@@ -40,9 +41,9 @@ describe('buildDraft: negative', () => {
     expect(problems(good({ parts: [] })).form.parts).toBeTruthy()
     expect(problems(good({ parts: Array.from({ length: 9 }, () => ({ ...emptyPart(), amount: '1' })) })).form.parts).toMatch(/at most 8/)
   })
-  it('rejects a title over 60 and a note over 200', () => {
+  it('rejects a title over 60 and a note over 140 (the contract limit)', () => {
     expect(problems(good({ title: 'x'.repeat(61) })).form.title).toBeTruthy()
-    expect(problems(good({ note: 'x'.repeat(201) })).form.note).toBeTruthy()
+    expect(problems(good({ note: 'x'.repeat(141) })).form.note).toBeTruthy()
   })
   it.each(['ab', 'Admin', 'admin', 'a--b', '-ab', 'andum-x', 'x'.repeat(33)])('rejects link name %j', (slug) => expect(problems(good({ slug })).form.slug).toBeTruthy())
   it.each(['0', '-1', '1.5', '721', 'abc', ''])('rejects accept window %j', (acceptHours) => expect(problems(good({ acceptHours })).form.acceptHours).toBeTruthy())

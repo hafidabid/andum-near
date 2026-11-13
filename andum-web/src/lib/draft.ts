@@ -4,13 +4,13 @@ import { THEMES, type ThemeId } from './themes'
 
 export const MAX_PARTS = 8
 export const MAX_APPROVERS = 5
-export const MAX_NOTE = 200
+export const MAX_NOTE = 140
 export const MAX_TITLE = 60
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const NEAR_ID = /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/
 
 export interface PartDraft {
-  asset: string            // faucet/contract key: usdc, idrx, myr, xau, aapl
+  asset: string            // faucet/contract key: usdc, idrx, myr, xau, aapl, nvda, pltr
   amount: string
   dated: boolean
   date: string             // datetime-local value

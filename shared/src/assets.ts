@@ -11,7 +11,7 @@ export const ASSETS: Asset[] = [
   cur('usdc', 'USDC', 'US dollar stablecoin'), cur('idrx', 'IDRX', 'Indonesian rupiah'), cur('myr', 'MYR', 'Malaysian ringgit'),
   cur('sgd', 'SGD', 'Singapore dollar'), cur('thb', 'THB', 'Thai baht'), cur('eur', 'EUR', 'Euro'), cur('jpy', 'JPY', 'Japanese yen'),
   oth('xau', 'g gold', 'Tokenized gold', 'gold'), oth('aapl', 'AAPL', 'Apple Inc. stock', 'stock'),
-  oth('nvda', 'NVDA', 'Nvidia stock', 'stock'), oth('tsla', 'TSLA', 'Tesla stock', 'stock'),
+  oth('nvda', 'NVDA', 'Nvidia stock', 'stock'), oth('pltr', 'PLTR', 'Palantir stock', 'stock'), oth('tsla', 'TSLA', 'Tesla stock', 'stock'),
 ];
 export const getAsset = (id: string) => ASSETS.find((a) => a.id === id);
 /** token account id for an asset on NEAR, e.g. `usdc.andum-hack.testnet` */

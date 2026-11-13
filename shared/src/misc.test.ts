@@ -109,7 +109,7 @@ describe('copy and assets', () => {
     expect(reasonCopy('???')).toMatch(/try again/);
   });
   it('asset registry', () => {
-    expect(ASSETS).toHaveLength(11);
+    expect(ASSETS).toHaveLength(12);
     expect(ASSETS.every((a) => a.decimals === 6)).toBe(true);
     expect(ASSETS.filter((a) => a.bridgeable)).toHaveLength(7);
     expect(getAsset('xau')?.bridgeable).toBe(false);

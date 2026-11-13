@@ -156,7 +156,7 @@ section{padding:120px 0 0}
 .assets{margin-top:6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;position:relative}
 .assets::before,.assets::after{content:"";position:absolute;top:0;bottom:0;width:90px;z-index:2;pointer-events:none}
 .assets::before{left:0;background:linear-gradient(90deg,var(--bg),transparent)}.assets::after{right:0;background:linear-gradient(270deg,var(--bg),transparent)}
-.assets .cap2{padding:18px 0 0}
+.assets .cap2{padding:18px 0 0;position:relative;z-index:3;color:#fff}
 .marq{display:flex;width:max-content;animation:marq 60s linear infinite;padding:16px 0 18px}
 .assets:hover .marq{animation-play-state:paused}
 @keyframes marq{to{transform:translateX(-50%)}}

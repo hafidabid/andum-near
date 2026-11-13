@@ -1,32 +1,52 @@
 # Andum
 
-**Programmable gifts, payments, rewards and surprises.** Send money, gold or stocks to someone who matters to you, in one package. Each part of a package opens on its own rule: right away, on a date, or on a date plus the approval of 1 to 5 people. The recipient holds the package as a non-transferable NFT pass, can see the funds before accepting, and nobody pays gas.
+**Programmable gifts, payments, rewards, and surprises—seamlessly cross-chain.**
 
-![Landing page](docs/media/web-landing-top.png)
+Andum lets you send money, gold, or tokenized stocks in one package. Each part follows its own release rule: when the recipient accepts, on a date, or after a date and an approver’s confirmation. Recipients can see what is inside before accepting, and the sender pays no gas.
 
-> **Status (13 Nov 2026):** the contracts are **deployed on NEAR testnet and Sepolia**, and the **web app is wired to the API**. A sender, a recipient and an approver, each in their own browser, run the whole flow on NEAR testnet. Everything is valueless test money. See [STATUS.md](STATUS.md) for what is done and what is not, and [ANDUM-PLAN.md](ANDUM-PLAN.md) for the design.
+<table>
+  <tr>
+    <td width="58%"><a href="https://andum.projectdeadwood.my.id/"><img src="docs/media/andum-package-banner.gif" alt="Illustration of an Andum package splitting into three release paths: immediate, date-based, and approval-gated"></a></td>
+    <td width="42%" valign="middle">
+      <p><img src="andum-web/public/favicon.svg" width="28" height="28" alt="Andum mark"> <strong>Andum</strong></p>
+      <h3>One package. Different rules for every part.</h3>
+      <p>Split a gift, payment, or reward into parts that open at different times.</p>
+      <ul>
+        <li>Release on acceptance, on a date, or after approval</li>
+        <li>Show recipients the funded package before they accept</li>
+        <li>Let an independent approver release milestone-based parts</li>
+        <li>Send without asking the sender to pay network gas</li>
+      </ul>
+      <p><a href="https://andum.projectdeadwood.my.id/">Explore the landing page</a> · <a href="docs/media/app-demo.mp4">Watch the testnet demo</a></p>
+    </td>
+  </tr>
+</table>
 
-## See it work
+![Andum package builder with per-part release rules](docs/media/app/03-builder.png)
 
-Three people, three browsers, NEAR testnet, no mock-ups. This is a recording of the automated browser test (full video: [`docs/media/app-demo.mp4`](docs/media/app-demo.mp4)):
+> **Working prototype · NEAR testnet and Sepolia.** The full sender, recipient, and approver journey runs on NEAR testnet using separate browser accounts. Tokens are valueless test assets. See [STATUS.md](STATUS.md) for current scope and [ANDUM-PLAN.md](ANDUM-PLAN.md) for the product design.
+
+## See the package journey
+
+Three roles, separate browser accounts, and a real NEAR testnet flow. This recording comes from the automated browser journey (full video: [`docs/media/app-demo.mp4`](docs/media/app-demo.mp4)):
 
 ![The web app on NEAR testnet](docs/media/app-demo.gif)
 
-### 1. The sender builds a package
+### 1. The sender sets the rules
 
 Sign in with an email code, get test tokens, add parts. Part 1 opens when the recipient accepts. Part 2 opens on a date **and** needs an approver.
 
-| Wallet and test tokens | The builder |
+| Wallet and test tokens | Package builder |
 |---|---|
 | ![Wallet](docs/media/app/02-wallet.png) | ![Builder](docs/media/app/03-builder.png) |
 
-### 2. It is funded on NEAR and the link is ready
+### 2. The package is funded and the recipient link is sent
 
 The package is created, every part is funded, the recipient is emailed and the link is set. The sender pays no gas.
 
 ![Sent](docs/media/app/04-sent.png)
 
-### 3. The recipient sees the funds before accepting
+### 3. The recipient reviews the package before accepting
 
 The link shows what is inside and how each part opens. Accepting needs a code from the recipient's email, and a wrong code is refused.
 
@@ -34,7 +54,7 @@ The link shows what is inside and how each part opens. Accepting needs a code fr
 |---|---|
 | ![Receiver preview](docs/media/app/05-receiver-preview.png) | ![Wrong code](docs/media/app/06-wrong-code.png) |
 
-### 4. Accept, then the rules take over
+### 4. The contract enforces each release rule
 
 Accepting mints the pass. Part 1 can be taken now. Part 2 is refused by the contract, first because it is too early and then because nobody has approved yet.
 
@@ -42,7 +62,7 @@ Accepting mints the pass. Part 1 can be taken now. Part 2 is refused by the cont
 |---|---|---|
 | ![Accepted](docs/media/app/07-accepted.png) | ![Too early](docs/media/app/08-too-early.png) | ![Needs approval](docs/media/app/09-needs-approval.png) |
 
-### 5. The approver says yes, the last part opens
+### 5. An independent approver releases the final part
 
 The approver is a different person with a different key. After approval the recipient takes part 2 and the money is in their account.
 

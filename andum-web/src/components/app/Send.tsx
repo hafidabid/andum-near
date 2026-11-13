@@ -16,6 +16,8 @@ const SEND_TEMPLATES = [
   { id: 'vesting', icon: '◷', name: 'Vesting', detail: 'Cash and shares on set dates', parts: [{ asset: 'idrx', amount: '12000000', dated: true }, { asset: 'aapl', amount: '10', dated: true }] },
 ] as const
 
+const DRAFT_KEY = 'andum.package-draft.v1'
+
 /** What a sender can put in a part, grouped so money, gold and stocks are easy to tell apart. */
 const ASSET_GROUPS: Array<[string, Array<[string, string]>]> = [
   ['Money', [['usdc', 'USDC · US dollar'], ['idrx', 'IDRX · Indonesian rupiah'], ['myr', 'MYR · Malaysian ringgit']]],
@@ -44,6 +46,7 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
   const [detail, setDetail] = useState<Record<number, string>>({})
   const [link, setLink] = useState<string | null>(null)
   const [template, setTemplate] = useState<string | null>(null)
+  const [draftStatus, setDraftStatus] = useState<string | null>(null)
   const run = useRef<Run>({ funded: new Set() })
   const built = useRef<ReturnType<typeof buildDraft> & { ok: true } | null>(null)
   const busy = step >= 0 && step < STEPS.length && failed === null
@@ -111,13 +114,39 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
     setProblems(null); built.current = r; run.current = { funded: new Set() }; void execute()
   }
 
-  function reset() { setD(emptyDraft()); setStep(-1); setFailed(null); setErr(null); setLink(null); setDetail({}); run.current = { funded: new Set() } }
+  function reset() { setD(emptyDraft()); setTemplate(null); setStep(-1); setFailed(null); setErr(null); setLink(null); setDetail({}); run.current = { funded: new Set() } }
 
   function applyTemplate(id: string) {
     const preset = SEND_TEMPLATES.find((x) => x.id === id)
     if (!preset) return
     setTemplate(id)
     setD((current) => ({ ...current, parts: preset.parts.map((p) => ({ ...emptyPart(p.asset), ...p, threshold: '1' })) }))
+  }
+
+  function startBlank() {
+    setTemplate('blank')
+    setD((current) => ({ ...current, parts: [emptyPart()] }))
+  }
+
+  function saveDraft() {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ d, template, savedAt: Date.now() }))
+      setDraftStatus('Draft saved on this device')
+    } catch {
+      setDraftStatus('This browser could not save the draft')
+    }
+  }
+
+  function restoreDraft() {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY)
+      if (!saved) { setDraftStatus('No saved draft on this device'); return }
+      const parsed = JSON.parse(saved) as { d?: Draft; template?: string | null }
+      if (!parsed.d || !Array.isArray(parsed.d.parts)) throw new Error('invalid draft')
+      setD(parsed.d); setTemplate(parsed.template ?? null); setDraftStatus('Saved draft restored')
+    } catch {
+      setDraftStatus('The saved draft could not be restored')
+    }
   }
 
   if (step >= 0) {
@@ -153,21 +182,27 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
   }
 
   const pe = (i: number, k: string) => problems?.parts[i]?.[k]
+  const recipientReady = d.email.trim().length > 0
+  const contentsReady = d.parts.some((p) => p.amount.trim().length > 0)
   return (
     <form onSubmit={submit} className="grid gap-5" noValidate aria-label="New package">
       <section className="dispatch-templates" aria-label="Package templates">
-        <div className="flex items-end justify-between gap-3"><div><span className="mono text-[11px]">Start with a pattern</span><h2 className="mt-1 font-display text-[20px]">Package templates</h2></div><span className="text-[12px] text-muted">Preview, then apply</span></div>
+        <div className="flex items-end justify-between gap-3"><div><span className="mono text-[11px]">Choose a starting point</span><h2 className="mt-1 font-display text-[20px]">Build your package</h2></div><span className="text-[12px] text-muted">Patterns are optional</span></div>
         <div className="template-grid">
+          <button type="button" aria-pressed={template === 'blank'} className="template-choice template-choice--blank" onClick={startBlank}>
+            <span className="template-mark template-mark--blank" aria-hidden="true">+</span><span className="min-w-0"><b>Start blank</b><small>Choose every detail yourself</small></span><span className="template-count">1 empty part</span>
+          </button>
           {SEND_TEMPLATES.map((item) => <button type="button" key={item.id} aria-pressed={template === item.id} className="template-choice" onClick={() => applyTemplate(item.id)}>
             <span className="template-mark" aria-hidden="true">{item.icon}</span><span className="min-w-0"><b>{item.name}</b><small>{item.detail}</small></span><span className="template-count">{item.parts.length} parts</span>
           </button>)}
         </div>
         {template && <div className="template-preview" aria-live="polite">
           <div className="template-preview-art"><ThemeArt theme={d.theme} className="h-10 w-10" /></div>
-          <div className="min-w-0 flex-1"><b>{SEND_TEMPLATES.find((x) => x.id === template)?.name} package preview</b><div className="template-preview-parts">{d.parts.map((p, i) => <span key={i}><AssetIcon a={assetFromKey(p.asset)} size={18} /> {p.amount || 'Amount'} {p.asset.toUpperCase()} · {p.dated ? 'Date' : 'On acceptance'}{p.approvalRequired ? ' + approval' : ''}</span>)}</div></div>
+          <div className="min-w-0 flex-1"><b>{template === 'blank' ? 'Blank package' : SEND_TEMPLATES.find((x) => x.id === template)?.name} preview</b><div className="template-preview-parts">{d.parts.map((p, i) => <span key={i}><AssetIcon a={assetFromKey(p.asset)} size={18} /> {p.amount || 'Amount'} {p.asset.toUpperCase()} · {p.dated ? 'Date' : 'On acceptance'}{p.approvalRequired ? ' + approval' : ''}</span>)}</div></div>
           <button type="button" className="text-[13px] text-muted underline-offset-2 hover:underline" onClick={() => setTemplate(null)}>Clear</button>
         </div>}
       </section>
+      <PackageRoute templateChosen={template !== null} recipientReady={recipientReady} contentsReady={contentsReady} />
       <Card className="grid gap-5">
         <div className="border-b border-line pb-4"><span className="mono text-[11px]">01 · Recipient</span><h2 className="mt-1 font-display text-[22px]">Who is it for?</h2></div>
         <Field label="Recipient email" error={problems?.form.email}><input className={inputCls} type="email" value={d.email} onChange={(e) => setD({ ...d, email: e.target.value })} aria-label="Recipient email" /></Field>
@@ -211,8 +246,38 @@ export function Send({ balances, onDone }: { balances: Record<string, string>; o
       </Card>
 
       {problems?.form.balance && <Notice>{problems.form.balance}</Notice>}
-      <button className="btn justify-center">Create and send <span className="arr">→</span></button>
+      <div className="dispatch-submit">
+        <div className="dispatch-draft-actions">
+          <button type="button" className="btn ghost" onClick={saveDraft}>Save draft</button>
+          <button type="button" className="text-[13px] text-muted underline-offset-2 hover:underline" onClick={restoreDraft}>Restore draft</button>
+          {draftStatus && <span className="text-[12px] text-muted" role="status">{draftStatus}</span>}
+        </div>
+        <button className="btn justify-center">Create and send <span className="arr">→</span></button>
+      </div>
     </form>
   )
 }
+
+function PackageRoute({ templateChosen, recipientReady, contentsReady }: { templateChosen: boolean; recipientReady: boolean; contentsReady: boolean }) {
+  const active = contentsReady ? 3 : recipientReady ? 2 : templateChosen ? 1 : 0
+  const stops = [
+    { label: 'Start', note: 'Pick a pattern or begin blank', art: <PackageGlyph /> },
+    { label: 'Recipient', note: 'Who will receive it?', art: <RecipientGlyph /> },
+    { label: 'Contents', note: 'Add the parts that travel', art: <ParcelGlyph /> },
+  ]
+  return <nav className="package-route" aria-label="Package progress">
+    <div className="package-route__track" aria-hidden="true"><span style={{ transform: `scaleX(${active / 3})` }} /></div>
+    {stops.map((stop, i) => {
+      const state = i < active ? 'done' : i === active ? 'active' : 'next'
+      return <div className="package-route__stop" data-state={state} key={stop.label}>
+        <span className="package-route__art" aria-hidden="true">{state === 'done' ? '✓' : stop.art}</span>
+        <span><b>{stop.label}</b><small>{stop.note}</small></span>
+      </div>
+    })}
+  </nav>
+}
+
+function PackageGlyph() { return <svg viewBox="0 0 24 24" fill="none"><path d="M4 8.5 12 4l8 4.5v8L12 21l-8-4.5v-8Z"/><path d="m4 8.5 8 4.5 8-4.5M12 13v8M8.5 6l8 4.5"/></svg> }
+function RecipientGlyph() { return <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3"/><path d="M5.5 20c.7-3.4 2.9-5 6.5-5s5.8 1.6 6.5 5"/></svg> }
+function ParcelGlyph() { return <svg viewBox="0 0 24 24" fill="none"><path d="M4 9h16v10H4zM8 9V6h8v3M4 13h16"/><path d="M12 13v6"/></svg> }
 

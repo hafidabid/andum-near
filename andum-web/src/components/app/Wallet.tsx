@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiClient } from '@/lib/api'
+import { AssetIcon, AS } from '@/lib/assets'
 import { accountUrl, DEPLOYED_ASSETS, tokenBalance } from '@/lib/chain'
 import { errorText } from '@/lib/errors'
-import { AssetIcon, AS } from '@/lib/assets'
 import { assetFromKey, fromBase } from '@/lib/money'
-import { Card, Notice, Spinner } from './ui'
+import { Notice, Spinner } from './ui'
 import { useSession } from './Session'
 
-const LABEL: Record<string, string> = { usdc: 'USDC', idrx: 'IDRX', myr: 'MYR', xau: 'Gold g', aapl: 'AAPL', nvda: 'NVDA', pltr: 'PLTR' }
+/** Short symbol shown per asset; gold is counted in grams. */
+export const LABEL: Record<string, string> = { usdc: 'USDC', idrx: 'IDRX', myr: 'MYR', xau: 'Gold g', aapl: 'AAPL', nvda: 'NVDA', pltr: 'PLTR' }
 
 export function useBalances(account: string | null) {
   const [b, setB] = useState<Record<string, string>>({})
@@ -20,12 +21,24 @@ export function useBalances(account: string | null) {
   return [b, refresh] as const
 }
 
-/** The signed-in account, its test-token balances and the faucet. */
-export function WalletStrip({ balances, refresh }: { balances: Record<string, string>; refresh: () => Promise<void> }) {
+/** Who is signed in: the account on NEAR, a copy action and sign out. Sits at the right of the title row. */
+export function AccountBar() {
+  const s = useSession()
+  const [copied, setCopied] = useState(false)
+  return (
+    <div className="ws-acct">
+      <a href={accountUrl(s.accountId!)} target="_blank" rel="noreferrer" data-testid="account-id" title={s.email ?? undefined}>{s.accountId}</a>
+      <button className="ws-act" onClick={() => { void navigator.clipboard?.writeText(s.accountId!); setCopied(true); setTimeout(() => setCopied(false), 1500) }}>{copied ? 'Copied' : 'Copy'}</button>
+      <button className="ws-act" onClick={() => void s.signOut()}>Sign out</button>
+    </div>
+  )
+}
+
+/** Test-token balances, one row per asset, with the faucet. The row is the control: no tiles. */
+export function Balances({ balances, refresh }: { balances: Record<string, string>; refresh: () => Promise<void> }) {
   const s = useSession()
   const [busy, setBusy] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
 
   async function faucet(asset: string) {
     setErr(null); setBusy(asset)
@@ -41,31 +54,23 @@ export function WalletStrip({ balances, refresh }: { balances: Record<string, st
   }
 
   return (
-    <Card className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="mono">Your account</div>
-          <a className="block max-w-full break-all text-[14px] text-fg underline-offset-2 hover:underline" href={accountUrl(s.accountId!)} target="_blank" rel="noreferrer" data-testid="account-id">{s.accountId}</a>
-          <div className="text-[13px] text-muted">{s.email}</div>
-        </div>
-        <div className="flex gap-2">
-          <button className="btn ghost sm" onClick={() => { void navigator.clipboard?.writeText(s.accountId!); setCopied(true); setTimeout(() => setCopied(false), 1500) }}>{copied ? 'Copied' : 'Copy account'}</button>
-          <button className="btn ghost sm" onClick={() => void s.signOut()}>Sign out</button>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        {DEPLOYED_ASSETS.map((a) => (
-          <div key={a} className="rounded-xl border border-line bg-bg2 p-3" data-asset={a}>
-            <div className="flex items-center gap-2">
-              <AssetIcon a={assetFromKey(a)} size={22} />
-              <div className="min-w-0"><div className="text-[13px] leading-tight text-fg">{LABEL[a]}</div><div className="truncate text-[11px] leading-tight text-muted">{AS[assetFromKey(a)].n}</div></div>
-            </div>
-            <div className="num mt-1.5 text-[18px]">{fromBase(balances[a] ?? '0')}</div>
-            <button className="mt-1.5 text-[12.5px] text-open underline-offset-2 hover:underline disabled:opacity-50" disabled={busy !== null} onClick={() => faucet(a)} aria-label={`Get test ${LABEL[a]}`}>{busy === a ? <Spinner /> : '+ test tokens'}</button>
-          </div>
-        ))}
-      </div>
-      {err && <Notice>{err}</Notice>}
-    </Card>
+    <section className="ws-card ws-card--tight" aria-label="Your balances">
+      <h2 className="ws-h">Your balances <small>Test tokens</small></h2>
+      <ul className="ws-bal">
+        {DEPLOYED_ASSETS.map((a) => {
+          const id = assetFromKey(a)
+          const zero = BigInt(balances[a] ?? '0') === 0n
+          return (
+            <li key={a} data-asset={a}>
+              <AssetIcon a={id} size={20} />
+              <span className="ws-bal-sym">{LABEL[a]}<small>{AS[id].n.replace(/ (stock|stablecoin)$/i, '').replace('Tokenized gold', 'Gold')}</small></span>
+              <span className={`ws-bal-amt num${zero ? ' is-zero' : ''}`}>{fromBase(balances[a] ?? '0')}</span>
+              <button disabled={busy !== null} onClick={() => faucet(a)} aria-label={`Get test ${LABEL[a]}`}>{busy === a ? <Spinner /> : '+ Get'}</button>
+            </li>
+          )
+        })}
+      </ul>
+      {err && <div className="mt-3"><Notice>{err}</Notice></div>}
+    </section>
   )
 }

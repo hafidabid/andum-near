@@ -5,6 +5,7 @@ import { AppRoutes } from './App'
 import { ROUTER_FUTURE } from './routerFuture'
 import './styles/legacy.css'
 import './styles/index.css'
+import './styles/workspace.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

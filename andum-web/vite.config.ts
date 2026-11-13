@@ -5,8 +5,14 @@ import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [react()],
+  server: { port: 3000, strictPort: true, fs: { allow: ['..'] } },
   resolve: {
-    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // NEP-366 codec shared with the relayer, so the browser signs exactly what the policy engine decodes.
+      '@shared': fileURLToPath(new URL('../shared/src', import.meta.url)),
+    },
+    dedupe: ['@noble/curves', '@noble/hashes', 'bs58', 'buffer'],
   },
   test: {
     globals: true,

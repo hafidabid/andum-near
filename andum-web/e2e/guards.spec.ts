@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { API, mailCode, signIn, uniq } from './helpers'
+import { API, fillCode, mailCode, signIn, uniq } from './helpers'
 
 // Negative and edge cases that need the real API but not the chain.
 
@@ -45,16 +45,16 @@ test.describe('sign in', () => {
     await page.goto('/app')
     await page.getByLabel('Your email').fill(email)
     await page.getByRole('button', { name: 'Send me a code' }).click()
-    await page.getByLabel('Sign-in code').fill('12')
+    await fillCode(page, 'Sign-in code', '12')
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.getByRole('alert')).toContainText('6 digits')
     const real = await mailCode(email)
     const wrong = real === '000000' ? '111111' : '000000'
-    await page.getByLabel('Sign-in code').fill(wrong)
+    await fillCode(page, 'Sign-in code', wrong)
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.getByRole('alert')).toContainText(/not right.*tries left/)
     // the right code still works afterwards
-    await page.getByLabel('Sign-in code').fill(real)
+    await fillCode(page, 'Sign-in code', real)
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.getByTestId('account-id')).toBeVisible()
   })
@@ -88,7 +88,7 @@ test.describe('sign in', () => {
     await expect(b.getByRole('button', { name: /Resend in \d+s/ })).toBeDisabled()
     await b.waitForTimeout(62_000)
     await b.getByRole('button', { name: 'Resend code' }).click()
-    await b.getByLabel('Sign-in code').fill(await mailCode(email, seen))
+    await fillCode(b, 'Sign-in code', await mailCode(email, seen))
     await b.getByRole('button', { name: 'Continue' }).click()
     await expect(b.getByRole('alert')).toContainText('key on another device')
   })

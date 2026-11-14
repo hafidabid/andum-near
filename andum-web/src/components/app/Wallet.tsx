@@ -4,7 +4,7 @@ import { AssetIcon, AS } from '@/lib/assets'
 import { accountUrl, DEPLOYED_ASSETS, tokenBalance } from '@/lib/chain'
 import { errorText } from '@/lib/errors'
 import { assetFromKey, fromBase } from '@/lib/money'
-import { Notice, Spinner } from './ui'
+import { BusyLabel, Notice } from './ui'
 import { useSession } from './Session'
 
 /** Short symbol shown per asset; gold is counted in grams. */
@@ -66,7 +66,7 @@ export function Balances({ balances, refresh }: { balances: Record<string, strin
               <AssetIcon a={id} size={20} />
               <span className="ws-bal-sym">{LABEL[a]}<small>{AS[id].n.replace(/ (stock|stablecoin)$/i, '').replace('Tokenized gold', 'Gold')}</small></span>
               <span className={`ws-bal-amt num${zero ? ' is-zero' : ''}`}>{fromBase(balances[a] ?? '0')}</span>
-              <button disabled={busy !== null} onClick={() => faucet(a)} aria-label={`Get test ${LABEL[a]}`}>{busy === a ? <Spinner /> : '+ Get'}</button>
+              <button disabled={busy !== null} onClick={() => faucet(a)} aria-label={`Get test ${LABEL[a]}`} aria-busy={busy === a || undefined}><BusyLabel busy={busy === a}>+ Get</BusyLabel></button>
             </li>
           )
         })}

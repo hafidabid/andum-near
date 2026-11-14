@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { apiClient, type PackageView } from '@/lib/api'
 import { NEAR_CORE, TGAS } from '@/lib/chain'
 import { errorText } from '@/lib/errors'
-import { Card, Notice, Spinner, TxLink } from './ui'
+import { Btn, Card, Notice, Spinner, TxLink } from './ui'
 import { PartsList } from './PartsList'
 import { useSession } from './Session'
 import { cx } from '@/lib/format'
@@ -55,7 +55,7 @@ export function Sent({ version, onChange }: { version: number; onChange: () => v
           <Card key={p.id} className="grid gap-3" >
             <Header p={p} />
             <PartsList parts={p.parts} />
-            {expired && <button className="btn ghost justify-self-start" disabled={busy === p.id} onClick={() => reclaim(p)}>{busy === p.id ? <Spinner /> : 'Take it back (not accepted in time)'}</button>}
+            {expired && <Btn className="ghost justify-self-start" busy={busy === p.id} busyLabel="Taking it back…" onClick={() => reclaim(p)}>Take it back (not accepted in time)</Btn>}
             {msg[p.id] && <Notice kind={msg[p.id].ok ? 'ok' : 'bad'}>{msg[p.id].text} <TxLink hash={msg[p.id].tx} /></Notice>}
           </Card>
         )
@@ -95,7 +95,7 @@ export function Approvals({ version }: { version: number }) {
               const k = `${p.id}:${x.part_id}`
               if (x.approvals.includes(s.accountId!)) return <span className="text-[13px] text-open">You approved {txs[k] && <TxLink hash={txs[k]} />}</span>
               if (x.state === 'TAKEN') return null
-              return <button className="btn sm" disabled={busy !== null} onClick={() => approve(p.id, x.part_id)} aria-label={`Approve part ${x.part_id + 1} of package ${p.id}`}>{busy === k ? <Spinner /> : 'Approve'}</button>
+              return <Btn className="sm" disabled={busy !== null} busy={busy === k} busyLabel="Approving…" onClick={() => approve(p.id, x.part_id)} aria-label={`Approve part ${x.part_id + 1} of package ${p.id}`}>Approve</Btn>
             }}
           />
         </Card>

@@ -13,7 +13,7 @@ Each part opens on its own terms. The sender pays no gas.
 
 ![NEAR testnet](https://img.shields.io/badge/NEAR-testnet-111?style=flat-square&logo=near&logoColor=white)
 ![Sepolia](https://img.shields.io/badge/EVM-Sepolia-111?style=flat-square&logo=ethereum&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-759%20passing-2ea44f?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-764%20passing-2ea44f?style=flat-square)
 ![Gasless](https://img.shields.io/badge/sender%20gas-zero-0b7285?style=flat-square)
 
 <br>
@@ -93,14 +93,15 @@ A normal transfer is all or nothing. Andum lets the sender decide **when** each 
 3. **Each part** opens by its rule. A part with approvers waits until enough of them approve (for example 2 of 3). A claim is final and cannot be taken twice.
 4. **Expired and unaccepted** packages can be reclaimed by the sender.
 
-Sign-in is non-custodial: an email code proves the address, and the browser generates and keeps the NEAR key. The server never holds a user key.
+Sign-in is non-custodial: a six-digit email code (six boxes: type, paste or autofill) proves the address, and the browser generates and keeps the NEAR key. The server never holds a user key.
 
 What the web app (`andum-web/`, Vite + React) does, all against the real API:
 
 - **Sender** (`/app`): sign-in, a first-run guide and a `?` hint on every confusing field, test-token faucet, balances, the builder (starting points that set the release rules, never the money; a live summary of what is being sent and what is still missing), create, fund, email and custom link. A failed step can be retried without sending twice. Sent packages can be reclaimed after the deadline.
 - **Withdraw** (`/app`, "Withdraw"): send any asset to any NEAR address. The address is checked first (not your own account, not an Andum contract, not an Ethereum address), a new address is registered with the token, then the transfer is sent. The relayer pays the gas.
-- **Recipient** (`/p/<name>` or `/i/<id>`): preview, sign-in, invite code, accept, take each part. Refusals show the reason in plain words.
+- **Recipient** (`/p/<name>` or `/i/<id>`): preview, sign-in, six-box invite code, accept, take each part. Refusals show the reason in plain words.
 - **Approver** (`/app`, "To approve"): approves the parts they were named on.
+- **Buttons that stay put**: while an action runs, a button keeps its size and colour, shows a spinner with what it is doing ("Sending code…", "Accepting on NEAR…") and is disabled, so the layout never jumps.
 
 ## Try it yourself
 
@@ -126,7 +127,7 @@ Then open http://localhost:3000/app and sign in with any email. To name an appro
 
 | Area | Tests | What it proves |
 |---|---|---|
-| Web app, unit and integration | 277 | Form rules, API client, receiver, sender and withdraw flows, hints and guide, and that every call the browser signs passes the relayer's own policy |
+| Web app, unit and integration | 282 | Form rules, API client, receiver, sender and withdraw flows, hints and guide, and that every call the browser signs passes the relayer's own policy |
 | Browser end to end | 10 | A real browser on the real API (9 guards), and the full three-person journey on NEAR testnet |
 | Backend API, worker, shared | 303 | Login, invites, relay policy (including withdrawals), queue, reconciler, notifier, bridge worker (shared 94, backend 146, worker 63) |
 | NEAR contracts | 131 | 124 unit tests, 7 on the compiled wasm in the NEAR sandbox |
@@ -139,6 +140,7 @@ The browser tests are the same ones that produced the screenshots above. What ea
 | Form rules | `src/lib/draft.test.ts`, `money.test.ts` | Bad emails, zero amounts or 7 decimals, dates in the past, 9 parts, approvers without a date, duplicates, threshold out of range, reserved link names; amounts above 2^53; time zones |
 | API client | `src/lib/api.test.ts` | Server error codes, non-JSON errors, network failure, timeout, plain-language text for every contract and API error |
 | Receiver pages | `src/pages/ReceivePage.test.tsx` | Unknown, malformed and rate-limited links, API down, expired, accepted and reclaimed packages; wrong, expired and locked codes, resend cooldown, contract and relayer refusals, returning users |
+| Controls | `src/components/app/Controls.test.tsx` | The six-box code input (typing, paste, backspace) and the busy button |
 | Sender flow | `src/components/app/Send.test.tsx`, `Workspace.test.tsx` | Signed calls are decoded and checked by the relayer's policy engine; retry reuses the invite; a taken link name returns to the form; starting points never set amounts; the summary lists what is missing |
 | Withdraw, hints, guide | `src/components/app/Withdraw.test.tsx` | Every refused address and amount, a new address registered then sent, the signed calls passing the policy, the guide shown once, `?` hints |
 | Browser, API only | `e2e/guards.spec.ts` | Links, sign-in errors, reload and sign-out, a second device without the key, the builder refusing every bad input |
@@ -149,7 +151,7 @@ The browser tests are the same ones that produced the screenshots above. What ea
 
 ```bash
 # Web app (no network needed)
-cd andum-web && npm install && npm test                          # 277 tests
+cd andum-web && npm install && npm test                          # 282 tests
 
 # Browser tests, with the stack and the web app running on :3000
 cd andum-web && npx playwright install chromium                 # first time

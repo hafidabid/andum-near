@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { mailCode, signIn, uniq } from './helpers'
+import { fillCode, mailCode, signIn, uniq } from './helpers'
 
 /**
  * The whole product, in the browser, against NEAR testnet through the real API, relayer and worker.
@@ -71,13 +71,13 @@ test('sender funds a package, recipient accepts and takes it, approver releases 
   await rina.getByRole('button', { name: /Accept package/ }).click()
   await signIn(rina, emails.rina, seen.rina)
   const good = await mailCode(emails.rina, seen.rina)
-  await rina.getByLabel('Invite code').fill(good === '000000' ? '111111' : '000000')
+  await fillCode(rina, 'Invite code', good === '000000' ? '111111' : '000000')
   await rina.getByRole('button', { name: 'Accept package' }).click()
   await expect(rina.getByRole('alert')).toContainText(/not right.*tries left/)
   await shot(rina, '06-wrong-code')
 
   // ---- accept with the right code
-  await rina.getByLabel('Invite code').fill(good)
+  await fillCode(rina, 'Invite code', good)
   await rina.getByRole('button', { name: 'Accept package' }).click()
   await expect(rina.locator('[data-owned=true]')).toBeVisible({ timeout: 120_000 })
   await expect(rina.getByText('Thanks for the audit!')).toBeVisible()

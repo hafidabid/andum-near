@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { errorText } from '@/lib/errors'
 import { ApiError } from '@/lib/api'
-import { Field, Notice, Spinner, inputCls, useCountdown } from './ui'
+import { Btn, Field, Notice, OtpInput, inputCls, useCountdown } from './ui'
 import { useSession } from './Session'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -46,17 +46,17 @@ export function SignIn({ defaultEmail = '', cta = 'Send me a code', onDone }: { 
           <input className={inputCls} type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} aria-label="Your email" />
         </Field>
         {err && <Notice>{err}</Notice>}
-        <button className="btn justify-center" disabled={busy}>{busy ? <Spinner /> : cta}</button>
+        <Btn className="justify-center" busy={busy} busyLabel="Sending code…">{cta}</Btn>
       </form>
     )
   }
   return (
     <form onSubmit={verify} className="grid gap-3.5" noValidate>
-      <Field label={`Code sent to ${email.trim()}`} hint="It can take a few seconds. It is valid for 10 minutes.">
-        <input className={inputCls + ' mono tracking-[.3em]'} inputMode="numeric" autoComplete="one-time-code" maxLength={9} placeholder="000000" autoFocus value={code} onChange={(e) => setCode(e.target.value)} disabled={busy} aria-label="Sign-in code" />
+      <Field group label={`Code sent to ${email.trim()}`} hint="It can take a few seconds. It is valid for 10 minutes.">
+        <OtpInput label="Sign-in code" value={code} onChange={(v) => { setCode(v); setErr(null) }} disabled={busy} invalid={!!err} />
       </Field>
       {err && <Notice>{err}</Notice>}
-      <button className="btn justify-center" disabled={busy}>{busy ? <Spinner /> : 'Continue'}</button>
+      <Btn className="justify-center" busy={busy} busyLabel="Checking…">Continue</Btn>
       <div className="flex justify-between text-[13px] text-muted">
         <button type="button" className="underline-offset-2 hover:underline" onClick={() => { setSent(false); setCode(''); setErr(null) }}>Use another email</button>
         <button type="button" className="underline-offset-2 hover:underline disabled:opacity-50" disabled={wait > 0 || busy} onClick={() => send()}>{wait > 0 ? `Resend in ${wait}s` : 'Resend code'}</button>

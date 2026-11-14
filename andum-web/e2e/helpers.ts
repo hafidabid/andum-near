@@ -23,10 +23,19 @@ export async function mailCode(to: string, seen: Set<string> = new Set()): Promi
 export async function signIn(page: Page, email: string, seen: Set<string>) {
   await page.getByLabel('Your email').fill(email)
   await page.getByRole('button', { name: /Send me a/ }).click()
-  await page.getByLabel('Sign-in code').fill(await mailCode(email, seen))
+  await fillCode(page, 'Sign-in code', await mailCode(email, seen))
   await page.getByRole('button', { name: 'Continue' }).click()
 }
 
 export async function expectToast(page: Page, text: RegExp | string) {
   await expect(page.getByRole('alert').filter({ hasText: text }).first()).toBeVisible()
+}
+
+/** The code field is six boxes: empty it, click the first box and type the digits. */
+export async function fillCode(page: Page, label: 'Sign-in code' | 'Invite code', code: string) {
+  const boxes = page.getByRole('group', { name: label, exact: true }).locator('input')
+  await boxes.last().click()
+  for (let i = 0; i < 12; i++) await page.keyboard.press('Backspace')
+  await boxes.first().click()
+  await page.keyboard.type(code)
 }

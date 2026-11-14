@@ -51,3 +51,15 @@ export const publicInvite = (over: Record<string, unknown> = {}) => ({
   },
   ...over,
 })
+
+/** Types into the six-box code input: focus the first box, then press the keys. */
+export async function typeCode(u: { click: (e: Element) => Promise<void>; keyboard: (k: string) => Promise<void> }, group: HTMLElement, text: string) {
+  await u.click(group.querySelectorAll('input')[0])
+  await u.keyboard(text)
+}
+/** Empties the code input from the right. */
+export async function clearCode(u: { click: (e: Element) => Promise<void>; keyboard: (k: string) => Promise<void> }, group: HTMLElement) {
+  const boxes = group.querySelectorAll('input')
+  await u.click(boxes[boxes.length - 1])
+  await u.keyboard('{Backspace}'.repeat(boxes.length * 2))
+}

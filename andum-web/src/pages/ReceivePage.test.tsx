@@ -4,7 +4,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from '@/App'
 import { ROUTER_FUTURE } from '@/routerFuture'
-import { err, installFakeApi, publicInvite, user, type FakeApi, type Handler } from '@/test/fakeApi'
+import { clearCode, err, installFakeApi, typeCode, publicInvite, user, type FakeApi, type Handler } from '@/test/fakeApi'
 
 function Where() { return <output data-testid="where">{useLocation().pathname}</output> }
 const renderAt = (path: string) => render(<MemoryRouter initialEntries={[path]} future={ROUTER_FUTURE}><AppRoutes /><Where /></MemoryRouter>)
@@ -114,7 +114,7 @@ describe('accept flow', () => {
     await u.click(screen.getByRole('button', { name: /Accept package/ }))
     await u.type(screen.getByLabelText('Your email'), 'rina@example.com')
     await u.click(screen.getByRole('button', { name: 'Send me a sign-in code' }))
-    await u.type(await screen.findByLabelText('Sign-in code'), '123456')
+    await typeCode(u, await screen.findByLabelText('Sign-in code'), '123456')
     await u.click(screen.getByRole('button', { name: 'Continue' }))
     return screen.findByLabelText('Invite code')
   }
@@ -122,7 +122,7 @@ describe('accept flow', () => {
   it('signs in, verifies the invite, signs accept_package and relays it', async () => {
     flow(); const u = userEvent.setup(); renderAt('/p/rina-bonus')
     const code = await toInviteCode(u)
-    await u.type(code, '654321')
+    await typeCode(u, code, '654321')
     await u.click(screen.getByRole('button', { name: 'Accept package' }))
     await waitFor(() => expect(api.count('POST /v1/relay/submit')).toBe(1))
     expect(api.calls.find((c) => c.key === 'POST /v1/invites/inv1/verify/confirm')!.body).toEqual({ code: '654321' })
@@ -141,10 +141,10 @@ describe('accept flow', () => {
     flow({ 'POST /v1/invites/inv1/verify/confirm': () => (n++ === 0 ? err(400, 'OTP_INVALID', 'x', { attempts_left: 4 }) : [200, { package_id: '7', invite_secret: 'c2VjcmV0' }]) })
     const u = userEvent.setup(); renderAt('/p/rina-bonus')
     const code = await toInviteCode(u)
-    await u.type(code, '000000'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
+    await typeCode(u, code, '000000'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
     expect(await screen.findByText('That code is not right. 4 tries left.')).toBeInTheDocument()
     expect(api.count('POST /v1/relay/submit')).toBe(0)
-    await u.clear(code); await u.type(code, '654321'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
+    await clearCode(u, code); await typeCode(u, code, '654321'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
     await waitFor(() => expect(api.count('POST /v1/relay/submit')).toBe(1))
   })
   it.each([
@@ -152,31 +152,31 @@ describe('accept flow', () => {
   ])('invite code error %s is explained', async (code, status, re) => {
     flow({ 'POST /v1/invites/inv1/verify/confirm': () => err(status, code) })
     const u = userEvent.setup(); renderAt('/p/rina-bonus'); const input = await toInviteCode(u)
-    await u.type(input, '111111'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
+    await typeCode(u, input, '111111'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
     expect(await screen.findByText(re)).toBeInTheDocument()
   })
   it('the contract refusing the secret is shown and nothing is claimed as accepted', async () => {
     flow({ 'GET /v1/relay/r1': () => [200, { status: 'FAILED', error_code: 'INVITE_SECRET_INVALID', tx_hash: 'T' }] })
     const u = userEvent.setup(); renderAt('/p/rina-bonus'); const input = await toInviteCode(u)
-    await u.type(input, '111111'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
+    await typeCode(u, input, '111111'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
     expect(await screen.findByText(/does not match this package/)).toBeInTheDocument()
     expect(screen.queryByText(/This package is yours/)).not.toBeInTheDocument()
   })
   it('the relayer refusing the call is shown', async () => {
     flow({ 'POST /v1/relay/submit': () => err(403, 'RELAY_POLICY_DENIED', 'no') })
     const u = userEvent.setup(); renderAt('/p/rina-bonus'); const input = await toInviteCode(u)
-    await u.type(input, '111111'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
+    await typeCode(u, input, '111111'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
     expect(await screen.findByText('The network helper refused this action.')).toBeInTheDocument()
   })
   it('a short invite code is caught in the form without a request', async () => {
     flow(); const u = userEvent.setup(); renderAt('/p/rina-bonus'); const input = await toInviteCode(u)
-    await u.type(input, '12'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
+    await typeCode(u, input, '12'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
     expect(await screen.findByText('The code has 6 digits.')).toBeInTheDocument()
     expect(api.count('POST /v1/invites/inv1/verify/confirm')).toBe(0)
   })
   it('a code pasted with spaces is cleaned', async () => {
     flow(); const u = userEvent.setup(); renderAt('/p/rina-bonus'); const input = await toInviteCode(u)
-    await u.type(input, '654 321'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
+    await typeCode(u, input, '654 321'); await u.click(screen.getByRole('button', { name: 'Accept package' }))
     await waitFor(() => expect(api.calls.find((c) => c.key === 'POST /v1/invites/inv1/verify/confirm')!.body).toEqual({ code: '654321' }))
   })
   it('sign-in refusing a wrong code does not move on', async () => {
@@ -184,7 +184,7 @@ describe('accept flow', () => {
     const u = userEvent.setup(); renderAt('/p/rina-bonus')
     await screen.findByRole('heading', { level: 1 }); await u.click(screen.getByRole('button', { name: /Accept package/ }))
     await u.type(screen.getByLabelText('Your email'), 'rina@example.com'); await u.click(screen.getByRole('button', { name: 'Send me a sign-in code' }))
-    await u.type(await screen.findByLabelText('Sign-in code'), '000000'); await u.click(screen.getByRole('button', { name: 'Continue' }))
+    await typeCode(u, await screen.findByLabelText('Sign-in code'), '000000'); await u.click(screen.getByRole('button', { name: 'Continue' }))
     expect(await screen.findByText('That code is not right. 2 tries left.')).toBeInTheDocument()
     expect(api.count('POST /v1/invites/inv1/verify/start')).toBe(0)
   })

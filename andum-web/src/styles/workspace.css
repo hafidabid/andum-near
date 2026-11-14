@@ -130,3 +130,30 @@
 .ws-note{margin:0 0 16px;font-size:13px;line-height:19px;color:var(--muted)}
 @media (max-width:959px){.ws-guide-steps{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){.ws-hint-btn{transition:none}}
+
+/* ---- buttons: one look idle and busy ---- */
+.bl{display:inline-grid;place-items:center;justify-items:center}
+.bl>span{grid-area:1/1;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.bl-idle[data-off]{visibility:hidden}
+.bl-busy{visibility:hidden}
+.bl-busy[data-on]{visibility:visible}
+.sp{display:inline-block;flex:none;width:1em;height:1em;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;opacity:.85;animation:spin .7s linear infinite}
+/* a busy button is not "disabled": keep full colour and show it is working */
+.btn[aria-busy=true]{opacity:1;cursor:progress;transform:none;box-shadow:none}
+.btn[aria-busy=true]:hover{transform:none;box-shadow:none}
+.btn.sm .bl-busy{gap:6px}
+.btn{min-height:46px;justify-content:center}
+.btn.sm{min-height:38px}
+.ws-bal button{display:inline-grid;min-width:44px;justify-items:end}
+.ws-bal button[aria-busy=true]{opacity:1;color:var(--fg);cursor:progress}
+.ws-bal button .bl-busy{justify-content:flex-end}
+@media (prefers-reduced-motion:reduce){.sp{animation-duration:1.6s}}
+
+/* ---- six-box code input ---- */
+.otp{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.otp-box{width:100%;min-width:0;height:56px;padding:0;text-align:center;font:600 24px/1 var(--mono,ui-monospace,monospace);color:var(--fg);background:var(--bg2,#0f141c);border:1px solid var(--line2);border-radius:12px;outline:none;caret-color:var(--open);transition:border-color .2s,background .2s,box-shadow .2s}
+.otp-box:focus{border-color:var(--open);box-shadow:0 0 0 3px var(--open-soft)}
+.otp-box:not(:placeholder-shown),.otp-box[value]:not([value=""]){border-color:var(--muted)}
+.otp-box:disabled{opacity:.6}
+.otp[data-invalid] .otp-box{border-color:var(--bad)}
+@media (max-width:380px){.otp{gap:6px}.otp-box{height:50px;font-size:21px}}

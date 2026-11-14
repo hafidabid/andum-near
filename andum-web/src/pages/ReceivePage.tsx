@@ -10,7 +10,7 @@ import { checkSlug } from '@/lib/slug'
 import { THEME_TINT, type ThemeId } from '@/lib/themes'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { ThemeArt } from '@/components/ThemeArt'
-import { Card, Field, Notice, Spinner, TxLink, inputCls, useCountdown } from '@/components/app/ui'
+import { Btn, Card, Field, Notice, OtpInput, Spinner, TxLink, useCountdown } from '@/components/app/ui'
 import { PartsList } from '@/components/app/PartsList'
 import { SignIn } from '@/components/app/SignIn'
 import { useSession } from '@/components/app/Session'
@@ -204,7 +204,7 @@ function AcceptPanel({ inviteId, emailHint, acceptBy, onAccepted }: { inviteId: 
     <div className="grid gap-3" data-phase={phase}>
       {phase === 'idle' && (
         <>
-          <button className="btn w-full justify-center" onClick={start} disabled={busy}>{busy ? <Spinner /> : <>Accept package <span className="arr">→</span></>}</button>
+          <Btn className="w-full justify-center" onClick={start} busy={busy} busyLabel="Opening…">Accept package <span className="arr">→</span></Btn>
           {err && <Notice>{err}</Notice>}
           <Link className="btn ghost w-full justify-center" to="/">What is Andum?</Link>
           <p className="text-center text-[13px] text-faint">You will confirm with a code sent to {emailHint}.{acceptBy ? ` Accept by ${fmtDate(new Date(acceptBy))}.` : ''}</p>
@@ -222,11 +222,11 @@ function AcceptPanel({ inviteId, emailHint, acceptBy, onAccepted }: { inviteId: 
           <form onSubmit={confirm} className="grid gap-3.5" noValidate>
             <h2 className="font-display text-[22px]">Confirm the invite</h2>
             <p className="text-[14px] text-muted">We sent a second code to {emailHint}. It releases the key that opens this package.</p>
-            <Field label="Invite code">
-              <input className={inputCls + ' mono tracking-[.3em]'} inputMode="numeric" autoComplete="one-time-code" maxLength={9} placeholder="000000" autoFocus value={code} onChange={(e) => setCode(e.target.value)} disabled={busy} aria-label="Invite code" />
+            <Field group label="Invite code" hint="Six digits, sent to your email.">
+              <OtpInput label="Invite code" value={code} onChange={(v) => { setCode(v); setErr(null) }} disabled={busy} invalid={!!err} />
             </Field>
             {err && <Notice>{err}</Notice>}
-            <button className="btn justify-center" disabled={busy}>{phase === 'accepting' ? <><Spinner /> Accepting on NEAR…</> : 'Accept package'}</button>
+            <Btn className="justify-center" busy={busy} busyLabel={phase === 'accepting' ? 'Accepting on NEAR…' : 'Checking…'}>Accept package</Btn>
             <button type="button" className="text-[13px] text-muted underline-offset-2 hover:underline disabled:opacity-50" disabled={wait > 0 || busy} onClick={sendInviteCode}>{wait > 0 ? `Resend in ${wait}s` : 'Resend code'}</button>
             <TxLink hash={tx} />
           </form>
@@ -265,9 +265,9 @@ function Owned({ pkg, onChange }: { pkg: PackageView; onChange: () => Promise<vo
       {pkg.note && <Card><div className="mono mb-1">A note for you</div><p className="text-[17px]">{pkg.note}</p></Card>}
       <PartsList parts={pkg.parts} error={errs} action={(p) => (
         p.state === 'TAKEN' ? <TxLink hash={txs[p.part_id]} /> :
-        <button className="btn sm" disabled={busy !== null} onClick={() => take(p.part_id)} aria-label={`Take part ${p.part_id + 1}`}>
-          {busy === p.part_id ? <Spinner /> : 'Take'}
-        </button>
+        <Btn className="sm" disabled={busy !== null} busy={busy === p.part_id} busyLabel="Taking…" onClick={() => take(p.part_id)} aria-label={`Take part ${p.part_id + 1}`}>
+          Take
+        </Btn>
       )} />
       <p className="text-center text-[13px] text-faint">Taking a part that is not open yet is refused by the contract. Try it.</p>
     </div>

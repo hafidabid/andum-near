@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ClipboardEvent, type KeyboardEvent as ReactKeyEvent, type ReactNode } from 'react'
 import { cx } from '@/lib/format'
 import { txUrl } from '@/lib/chain'
 
@@ -9,7 +9,7 @@ export function Card({ children, className }: { children: ReactNode; className?:
 export const inputCls = 'w-full rounded-lg border border-line2 bg-bg2 px-3 py-2.5 text-[15px] text-fg placeholder:text-faint outline-none transition-colors focus:border-open disabled:opacity-60'
 
 /** A labelled field. `help` adds a small "?" that opens a plain-language note in a floating popover. */
-export function Field({ label, hint, help, error, children }: { label: string; hint?: string; help?: ReactNode; error?: string | null; children: ReactNode }) {
+export function Field({ label, hint, help, error, group, children }: { group?: boolean; label: string; hint?: string; help?: ReactNode; error?: string | null; children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const id = useId()
   const box = useRef<HTMLSpanElement>(null)
@@ -24,7 +24,7 @@ export function Field({ label, hint, help, error, children }: { label: string; h
   }, [open])
   // A field with a help button is a plain container: a button inside a <label> would also be "labelled" by it.
   // Every input in the app carries its own aria-label, so nothing loses its name.
-  const Wrap = help ? 'div' : 'label'
+  const Wrap = help || group ? 'div' : 'label'
   return (
     <Wrap className="grid gap-1.5 text-left">
       <span className="flex items-center gap-2 text-[13px] font-medium leading-5 text-muted">
@@ -44,6 +44,84 @@ export function Notice({ kind = 'bad', children }: { kind?: 'bad' | 'info' | 'ok
 
 export function Spinner() {
   return <span className="spin inline-block h-4 w-4 rounded-full border-2 border-line2 border-t-open align-[-2px]" aria-hidden="true" />
+}
+
+/** Small inline spinner for buttons. Sized in em so it follows the button's text. */
+export function Dots() {
+  return <span className="sp" aria-hidden="true" />
+}
+
+/**
+ * Button label that keeps its size while busy. The idle label and the busy label share one grid cell, so the
+ * button is as wide as the longer of the two and never jumps. The busy view shows a spinner and, if given, its own text.
+ */
+export function BusyLabel({ busy, busyLabel, children }: { busy: boolean; busyLabel?: ReactNode; children: ReactNode }) {
+  return (
+    <span className="bl">
+      <span className="bl-idle" data-off={busy || undefined}>{children}</span>
+      <span className="bl-busy" data-on={busy || undefined} aria-hidden={!busy}><Dots />{busyLabel}</span>
+    </span>
+  )
+}
+
+/** The app's standard button: one look idle and busy, disabled while busy, announced as busy. */
+export function Btn({ busy = false, busyLabel, disabled, className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { busy?: boolean; busyLabel?: ReactNode }) {
+  return (
+    <button {...rest} className={cx('btn', className)} disabled={disabled || busy} aria-busy={busy || undefined}>
+      <BusyLabel busy={busy} busyLabel={busyLabel}>{children}</BusyLabel>
+    </button>
+  )
+}
+
+/** Six boxes for a numeric code. Types, pastes (also from SMS autofill), backspaces and arrows like one field. */
+export function OtpInput({ value, onChange, onComplete, disabled, label, length = 6, invalid }: { value: string; onChange: (v: string) => void; onComplete?: (v: string) => void; disabled?: boolean; label: string; length?: number; invalid?: boolean }) {
+  const refs = useRef<(HTMLInputElement | null)[]>([])
+  const digits = Array.from({ length }, (_, i) => value[i] ?? '')
+  const focus = (i: number) => { const el = refs.current[Math.max(0, Math.min(length - 1, i))]; el?.focus(); el?.select() }
+  const commit = (v: string, at: number) => {
+    onChange(v)
+    if (v.length === length) onComplete?.(v)
+    focus(Math.min(at, length - 1))
+  }
+  // Writes `incoming` digits starting at box `i`, keeping what comes before.
+  const put = (i: number, incoming: string) => {
+    const d = incoming.replace(/\D/g, '')
+    if (!d) return
+    const next = (value.slice(0, i).padEnd(i, ' ') + d + value.slice(i + d.length)).replace(/ /g, '').slice(0, length)
+    commit(next, i + d.length)
+  }
+  const key = (i: number, e: ReactKeyEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      e.preventDefault()
+      if (digits[i]) onChange(value.slice(0, i) + value.slice(i + 1))
+      else if (i > 0) { onChange(value.slice(0, i - 1) + value.slice(i)); focus(i - 1) }
+    } else if (e.key === 'ArrowLeft') { e.preventDefault(); focus(i - 1) }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); focus(i + 1) }
+  }
+  const paste = (i: number, e: ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); put(i, e.clipboardData.getData('text')) }
+  return (
+    <div role="group" aria-label={label} className="otp" data-invalid={invalid || undefined}>
+      {digits.map((d, i) => (
+        <input
+          key={i}
+          ref={(el) => { refs.current[i] = el }}
+          className="otp-box"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete={i === 0 ? 'one-time-code' : 'off'}
+          autoFocus={i === 0}
+          maxLength={length}
+          value={d}
+          disabled={disabled}
+          aria-label={`${label}, digit ${i + 1}`}
+          onChange={(e) => put(Math.min(i, value.length), e.target.value)}
+          onKeyDown={(e) => key(i, e)}
+          onPaste={(e) => paste(i, e)}
+          onFocus={(e) => e.target.select()}
+        />
+      ))}
+    </div>
+  )
 }
 
 export function TxLink({ hash }: { hash?: string }) {

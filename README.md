@@ -9,7 +9,8 @@
 Send money, gold or tokenized stocks in a single package.<br>
 Each part opens on its own terms. The sender pays no gas.
 
-[**Live landing page**](https://andum.projectdeadwood.my.id/) &nbsp;·&nbsp; [**Demo video**](docs/media/app-demo.mp4) &nbsp;·&nbsp; [Product plan](ANDUM-PLAN.md) &nbsp;·&nbsp; [Status](STATUS.md)
+[**Live landing page**](https://andum.projectdeadwood.my.id/) &nbsp;·&nbsp; [**Demo video**](docs/media/app-demo.mp4) &nbsp;·&nbsp; [Product plan](ANDUM-PLAN.md) &nbsp;·&nbsp; [Status](STATUS.md) ·&nbsp; [**X/Twitter**](https://x.com/hafidaniswara/status/2121632256808898568) &nbsp;
+
 
 ![NEAR testnet](https://img.shields.io/badge/NEAR-testnet-111?style=flat-square&logo=near&logoColor=white)
 ![Sepolia](https://img.shields.io/badge/EVM-Sepolia-111?style=flat-square&logo=ethereum&logoColor=white)
